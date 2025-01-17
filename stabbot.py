@@ -27,7 +27,7 @@ if __name__ == "__main__":
     output_file = sys.argv[2]
 
     detect_command = f"ffmpeg -i {input_file} -vf vidstabdetect -f null -"
-    transform_command = f"ffmpeg -y -i {input_file} -vf vidstabtransform=smoothing=30:crop=black:zoom=-15:optzoom=0:interpol=linear,unsharp=5:5:0.8:3:3:0.4 {output_file}"
+    transform_command = f"ffmpeg -y -i {input_file} -vf vidstabtransform=smoothing=30:crop=black:zoom=-15:optzoom=0:interpol=linear {output_file}"
     delete_files_command = f"rm transforms.trf"
 
     run_ffmpeg(detect_command)
