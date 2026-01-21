@@ -1,0 +1,374 @@
+2025-12-08 17:26:18,442 - INFO - ============================================================
+2025-12-08 17:26:18,442 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2025-12-08 17:26:18,442 - INFO - ============================================================
+2025-12-08 17:26:18,446 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2025-12-08 17:26:18,796 - DEBUG - Detected NVIDIA NVENC encoder
+2025-12-08 17:26:18,796 - DEBUG - Detected Intel Quick Sync encoder
+2025-12-08 17:26:18,796 - DEBUG - Detected AMD AMF encoder
+2025-12-08 17:29:22,843 - INFO - ============================================================
+2025-12-08 17:29:22,844 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2025-12-08 17:29:22,844 - INFO - ============================================================
+2025-12-08 17:29:22,848 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2025-12-08 17:29:22,895 - DEBUG - Detected NVIDIA NVENC encoder
+2025-12-08 17:29:22,895 - DEBUG - Detected Intel Quick Sync encoder
+2025-12-08 17:29:22,895 - DEBUG - Detected AMD AMF encoder
+2025-12-08 17:29:39,076 - INFO - ============================================================
+2025-12-08 17:29:39,076 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2025-12-08 17:29:39,077 - INFO - ============================================================
+2025-12-08 17:29:39,081 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2025-12-08 17:29:39,124 - DEBUG - Detected NVIDIA NVENC encoder
+2025-12-08 17:29:39,124 - DEBUG - Detected Intel Quick Sync encoder
+2025-12-08 17:29:39,124 - DEBUG - Detected AMD AMF encoder
+2025-12-08 17:30:10,370 - INFO - ============================================================
+2025-12-08 17:30:10,370 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2025-12-08 17:30:10,370 - INFO - ============================================================
+2025-12-08 17:30:10,375 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2025-12-08 17:30:10,427 - DEBUG - Detected NVIDIA NVENC encoder
+2025-12-08 17:30:10,427 - DEBUG - Detected Intel Quick Sync encoder
+2025-12-08 17:30:10,427 - DEBUG - Detected AMD AMF encoder
+2025-12-08 17:31:05,284 - INFO - ============================================================
+2025-12-08 17:31:05,284 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2025-12-08 17:31:05,285 - INFO - ============================================================
+2025-12-08 17:31:05,289 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2025-12-08 17:31:05,328 - DEBUG - Detected NVIDIA NVENC encoder
+2025-12-08 17:31:05,328 - DEBUG - Detected Intel Quick Sync encoder
+2025-12-08 17:31:05,328 - DEBUG - Detected AMD AMF encoder
+2025-12-08 17:31:26,260 - INFO - ============================================================
+2025-12-08 17:31:26,260 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2025-12-08 17:31:26,261 - INFO - ============================================================
+2025-12-08 17:31:26,264 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2025-12-08 17:31:26,304 - DEBUG - Detected NVIDIA NVENC encoder
+2025-12-08 17:31:26,304 - DEBUG - Detected Intel Quick Sync encoder
+2025-12-08 17:31:26,304 - DEBUG - Detected AMD AMF encoder
+2025-12-08 17:31:46,644 - INFO - Using hardware encoder: NVIDIA NVENC (h264_nvenc)
+2025-12-08 17:31:50,545 - INFO - Using quality preset: high
+2025-12-08 17:31:53,135 - INFO - Using balanced stabilization preset
+2025-12-08 17:31:53,137 - INFO - Processing: backwards alphabet.mp4
+2025-12-08 17:31:53,137 - INFO - Output: output.mp4
+2025-12-08 17:31:53,137 - INFO - Using encoder: h264_nvenc
+2025-12-08 17:31:53,138 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -i C:\Users\maxwe\Videos\Captures\backwards alphabet.mp4 -vf vidstabdetect=result=C:\Users\maxwe\AppData\Local\Temp\tmpi8eh7_5r\transforms.trf:shakiness=5 -f null - -threads 24
+2025-12-08 17:31:53,238 - ERROR - FFmpeg command failed
+2025-12-08 17:31:53,238 - ERROR - Error: ffmpeg version 7.0.2-full_build-www.gyan.dev Copyright (c) 2000-2024 the FFmpeg developers
+  built with gcc 13.2.0 (Rev5, Built by MSYS2 project)
+  configuration: --enable-gpl --enable-version3 --enable-static --disable-w32threads --disable-autodetect --enable-fontconfig --enable-iconv --enable-gnutls --enable-libxml2 --enable-gmp --enable-bzlib --enable-lzma --enable-libsnappy --enable-zlib --enable-librist --enable-libsrt --enable-libssh --enable-libzmq --enable-avisynth --enable-libbluray --enable-libcaca --enable-sdl2 --enable-libaribb24 --enable-libaribcaption --enable-libdav1d --enable-libdavs2 --enable-libuavs3d --enable-libxevd --enable-libzvbi --enable-librav1e --enable-libsvtav1 --enable-libwebp --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxeve --enable-libxvid --enable-libaom --enable-libjxl --enable-libopenjpeg --enable-libvpx --enable-mediafoundation --enable-libass --enable-frei0r --enable-libfreetype --enable-libfribidi --enable-libharfbuzz --enable-liblensfun --enable-libvidstab --enable-libvmaf --enable-libzimg --enable-amf --enable-cuda-llvm --enable-cuvid --enable-dxva2 --enable-d3d11va --enable-d3d12va --enable-ffnvcodec --enable-libvpl --enable-nvdec --enable-nvenc --enable-vaapi --enable-libshaderc --enable-vulkan --enable-libplacebo --enable-opencl --enable-libcdio --enable-libgme --enable-libmodplug --enable-libopenmpt --enable-libopencore-amrwb --enable-libmp3lame --enable-libshine --enable-libtheora --enable-libtwolame --enable-libvo-amrwbenc --enable-libcodec2 --enable-libilbc --enable-libgsm --enable-libopencore-amrnb --enable-libopus --enable-libspeex --enable-libvorbis --enable-ladspa --enable-libbs2b --enable-libflite --enable-libmysofa --enable-librubberband --enable-libsoxr --enable-chromaprint
+  libavutil      59.  8.100 / 59.  8.100
+  libavcodec     61.  3.100 / 61.  3.100
+  libavformat    61.  1.100 / 61.  1.100
+  libavdevice    61.  1.100 / 61.  1.100
+  libavfilter    10.  1.100 / 10.  1.100
+  libswscale      8.  1.100 /  8.  1.100
+  libswresample   5.  1.100 /  5.  1.100
+  libpostproc    58.  1.100 / 58.  1.100
+Trailing option(s) found in the command: may be ignored.
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'C:\Users\maxwe\Videos\Captures\backwards alphabet.mp4':
+  Metadata:
+    major_brand     : mp42
+    minor_version   : 0
+    compatible_brands: mp42mp41iso4
+    creation_time   : 2021-11-16T21:59:01.000000Z
+  Duration: 00:00:51.62, start: 0.000000, bitrate: 693 kb/s
+  Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, bt709, progressive), 576x1024, 558 kb/s, 30 fps, 30 tbr, 15360 tbn (default)
+      Metadata:
+        creation_time   : 2021-11-16T21:59:01.000000Z
+        handler_name    : Vireo Eyes v2.7.3
+        vendor_id       : [0][0][0][0]
+        encoder         : AVC Coding
+  Stream #0:1[0x2](und): Audio: aac (LC) (mp4a / 0x6134706D), 44100 Hz, stereo, fltp, 128 kb/s (default)
+      Metadata:
+        creation_time   : 2021-11-16T21:59:01.000000Z
+        handler_name    : Vireo Ears v2.7.3
+        vendor_id       : [0][0][0][0]
+[Parsed_vidstabdetect_0 @ 00000133ebbb0140] [Eval @ 00000006bc3fd6f0] Undefined constant or missing '(' in 'UsersmaxweAppDataLocalTemptmpi8eh7_5rtransforms.trf'
+[Parsed_vidstabdetect_0 @ 00000133ebbb0140] Unable to parse option value "UsersmaxweAppDataLocalTemptmpi8eh7_5rtransforms.trf"
+Error applying option 'shakiness' to filter 'vidstabdetect': Invalid argument
+[vost#0:0/wrapped_avframe @ 00000133eb9b00c0] Error initializing a simple filtergraph
+Error opening output file -.
+Error opening output files: Invalid argument
+
+2025-12-08 17:31:53,240 - ERROR - Error processing video: FFmpeg command failed: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -i C:\Users\maxwe\Videos\Captures\backwards alphabet.mp4 -vf vidstabdetect=result=C:\Users\maxwe\AppData\Local\Temp\tmpi8eh7_5r\transforms.trf:shakiness=5 -f null - -threads 24
+2025-12-08 17:33:18,895 - INFO - ============================================================
+2025-12-08 17:33:18,897 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2025-12-08 17:33:18,897 - INFO - ============================================================
+2025-12-08 17:33:18,901 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2025-12-08 17:33:18,938 - DEBUG - Detected NVIDIA NVENC encoder
+2025-12-08 17:33:18,938 - DEBUG - Detected Intel Quick Sync encoder
+2025-12-08 17:33:18,938 - DEBUG - Detected AMD AMF encoder
+2025-12-08 17:33:31,789 - INFO - Using hardware encoder: NVIDIA NVENC (h264_nvenc)
+2025-12-08 17:33:33,590 - INFO - Using quality preset: balanced
+2025-12-08 17:33:36,023 - INFO - Using balanced stabilization preset
+2025-12-08 17:33:36,024 - INFO - Processing: backwards alphabet.mp4
+2025-12-08 17:33:36,024 - INFO - Output: test.mp4
+2025-12-08 17:33:36,024 - INFO - Using encoder: h264_nvenc
+2025-12-08 17:33:36,025 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -i C:\Users\maxwe\Videos\Captures\backwards alphabet.mp4 -vf vidstabdetect=result=C:/Users/maxwe/AppData/Local/Temp/tmp_kqrm8fv/transforms.trf:shakiness=5 -f null - -threads 24
+2025-12-08 17:33:36,126 - ERROR - FFmpeg command failed
+2025-12-08 17:33:36,126 - ERROR - Error: ffmpeg version 7.0.2-full_build-www.gyan.dev Copyright (c) 2000-2024 the FFmpeg developers
+  built with gcc 13.2.0 (Rev5, Built by MSYS2 project)
+  configuration: --enable-gpl --enable-version3 --enable-static --disable-w32threads --disable-autodetect --enable-fontconfig --enable-iconv --enable-gnutls --enable-libxml2 --enable-gmp --enable-bzlib --enable-lzma --enable-libsnappy --enable-zlib --enable-librist --enable-libsrt --enable-libssh --enable-libzmq --enable-avisynth --enable-libbluray --enable-libcaca --enable-sdl2 --enable-libaribb24 --enable-libaribcaption --enable-libdav1d --enable-libdavs2 --enable-libuavs3d --enable-libxevd --enable-libzvbi --enable-librav1e --enable-libsvtav1 --enable-libwebp --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxeve --enable-libxvid --enable-libaom --enable-libjxl --enable-libopenjpeg --enable-libvpx --enable-mediafoundation --enable-libass --enable-frei0r --enable-libfreetype --enable-libfribidi --enable-libharfbuzz --enable-liblensfun --enable-libvidstab --enable-libvmaf --enable-libzimg --enable-amf --enable-cuda-llvm --enable-cuvid --enable-dxva2 --enable-d3d11va --enable-d3d12va --enable-ffnvcodec --enable-libvpl --enable-nvdec --enable-nvenc --enable-vaapi --enable-libshaderc --enable-vulkan --enable-libplacebo --enable-opencl --enable-libcdio --enable-libgme --enable-libmodplug --enable-libopenmpt --enable-libopencore-amrwb --enable-libmp3lame --enable-libshine --enable-libtheora --enable-libtwolame --enable-libvo-amrwbenc --enable-libcodec2 --enable-libilbc --enable-libgsm --enable-libopencore-amrnb --enable-libopus --enable-libspeex --enable-libvorbis --enable-ladspa --enable-libbs2b --enable-libflite --enable-libmysofa --enable-librubberband --enable-libsoxr --enable-chromaprint
+  libavutil      59.  8.100 / 59.  8.100
+  libavcodec     61.  3.100 / 61.  3.100
+  libavformat    61.  1.100 / 61.  1.100
+  libavdevice    61.  1.100 / 61.  1.100
+  libavfilter    10.  1.100 / 10.  1.100
+  libswscale      8.  1.100 /  8.  1.100
+  libswresample   5.  1.100 /  5.  1.100
+  libpostproc    58.  1.100 / 58.  1.100
+Trailing option(s) found in the command: may be ignored.
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'C:\Users\maxwe\Videos\Captures\backwards alphabet.mp4':
+  Metadata:
+    major_brand     : mp42
+    minor_version   : 0
+    compatible_brands: mp42mp41iso4
+    creation_time   : 2021-11-16T21:59:01.000000Z
+  Duration: 00:00:51.62, start: 0.000000, bitrate: 693 kb/s
+  Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, bt709, progressive), 576x1024, 558 kb/s, 30 fps, 30 tbr, 15360 tbn (default)
+      Metadata:
+        creation_time   : 2021-11-16T21:59:01.000000Z
+        handler_name    : Vireo Eyes v2.7.3
+        vendor_id       : [0][0][0][0]
+        encoder         : AVC Coding
+  Stream #0:1[0x2](und): Audio: aac (LC) (mp4a / 0x6134706D), 44100 Hz, stereo, fltp, 128 kb/s (default)
+      Metadata:
+        creation_time   : 2021-11-16T21:59:01.000000Z
+        handler_name    : Vireo Ears v2.7.3
+        vendor_id       : [0][0][0][0]
+[Parsed_vidstabdetect_0 @ 0000020fa28400c0] [Eval @ 00000011965fd970] Undefined constant or missing '(' in '/Users/maxwe/AppData/Local/Temp/tmp_kqrm8fv/transforms.trf'
+[Parsed_vidstabdetect_0 @ 0000020fa28400c0] Unable to parse option value "/Users/maxwe/AppData/Local/Temp/tmp_kqrm8fv/transforms.trf"
+Error applying option 'shakiness' to filter 'vidstabdetect': Invalid argument
+[vost#0:0/wrapped_avframe @ 0000020fa26400c0] Error initializing a simple filtergraph
+Error opening output file -.
+Error opening output files: Invalid argument
+
+2025-12-08 17:33:36,128 - ERROR - Error processing video: FFmpeg command failed: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -i C:\Users\maxwe\Videos\Captures\backwards alphabet.mp4 -vf vidstabdetect=result=C:/Users/maxwe/AppData/Local/Temp/tmp_kqrm8fv/transforms.trf:shakiness=5 -f null - -threads 24
+2025-12-08 17:34:59,461 - INFO - ============================================================
+2025-12-08 17:34:59,461 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2025-12-08 17:34:59,461 - INFO - ============================================================
+2025-12-08 17:34:59,465 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2025-12-08 17:34:59,501 - DEBUG - Detected NVIDIA NVENC encoder
+2025-12-08 17:34:59,501 - DEBUG - Detected Intel Quick Sync encoder
+2025-12-08 17:34:59,501 - DEBUG - Detected AMD AMF encoder
+2025-12-08 17:35:06,106 - INFO - Using hardware encoder: Intel Quick Sync (h264_qsv)
+2025-12-08 17:35:06,549 - INFO - Using quality preset: balanced
+2025-12-08 17:35:07,012 - INFO - Using balanced stabilization preset
+2025-12-08 17:35:07,014 - INFO - Processing: backwards alphabet.mp4
+2025-12-08 17:35:07,014 - INFO - Output: test.mp4
+2025-12-08 17:35:07,014 - INFO - Using encoder: h264_qsv
+2025-12-08 17:35:07,015 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -i C:\Users\maxwe\Videos\Captures\backwards alphabet.mp4 -vf vidstabdetect=shakiness=5:result=C:/Users/maxwe/AppData/Local/Temp/tmptrndt2jo/transforms.trf -f null - -threads 24
+2025-12-08 17:35:10,229 - INFO - Motion detection completed in 3.2s
+2025-12-08 17:35:10,229 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -y -i C:\Users\maxwe\Videos\Captures\backwards alphabet.mp4 -threads 24 -vf vidstabtransform=input=C:/Users/maxwe/AppData/Local/Temp/tmptrndt2jo/transforms.trf:smoothing=30:crop=black:zoom=-15:optzoom=0:interpol=linear -c:v h264_qsv -avoid_negative_ts make_zero -fflags +genpts -preset fast -global_quality 23 -c:a aac -b:a 128k C:\Users\maxwe\Videos\Captures\test.mp4
+2025-12-08 17:35:10,330 - ERROR - FFmpeg command failed
+2025-12-08 17:35:10,330 - ERROR - Error: ffmpeg version 7.0.2-full_build-www.gyan.dev Copyright (c) 2000-2024 the FFmpeg developers
+  built with gcc 13.2.0 (Rev5, Built by MSYS2 project)
+  configuration: --enable-gpl --enable-version3 --enable-static --disable-w32threads --disable-autodetect --enable-fontconfig --enable-iconv --enable-gnutls --enable-libxml2 --enable-gmp --enable-bzlib --enable-lzma --enable-libsnappy --enable-zlib --enable-librist --enable-libsrt --enable-libssh --enable-libzmq --enable-avisynth --enable-libbluray --enable-libcaca --enable-sdl2 --enable-libaribb24 --enable-libaribcaption --enable-libdav1d --enable-libdavs2 --enable-libuavs3d --enable-libxevd --enable-libzvbi --enable-librav1e --enable-libsvtav1 --enable-libwebp --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxeve --enable-libxvid --enable-libaom --enable-libjxl --enable-libopenjpeg --enable-libvpx --enable-mediafoundation --enable-libass --enable-frei0r --enable-libfreetype --enable-libfribidi --enable-libharfbuzz --enable-liblensfun --enable-libvidstab --enable-libvmaf --enable-libzimg --enable-amf --enable-cuda-llvm --enable-cuvid --enable-dxva2 --enable-d3d11va --enable-d3d12va --enable-ffnvcodec --enable-libvpl --enable-nvdec --enable-nvenc --enable-vaapi --enable-libshaderc --enable-vulkan --enable-libplacebo --enable-opencl --enable-libcdio --enable-libgme --enable-libmodplug --enable-libopenmpt --enable-libopencore-amrwb --enable-libmp3lame --enable-libshine --enable-libtheora --enable-libtwolame --enable-libvo-amrwbenc --enable-libcodec2 --enable-libilbc --enable-libgsm --enable-libopencore-amrnb --enable-libopus --enable-libspeex --enable-libvorbis --enable-ladspa --enable-libbs2b --enable-libflite --enable-libmysofa --enable-librubberband --enable-libsoxr --enable-chromaprint
+  libavutil      59.  8.100 / 59.  8.100
+  libavcodec     61.  3.100 / 61.  3.100
+  libavformat    61.  1.100 / 61.  1.100
+  libavdevice    61.  1.100 / 61.  1.100
+  libavfilter    10.  1.100 / 10.  1.100
+  libswscale      8.  1.100 /  8.  1.100
+  libswresample   5.  1.100 /  5.  1.100
+  libpostproc    58.  1.100 / 58.  1.100
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'C:\Users\maxwe\Videos\Captures\backwards alphabet.mp4':
+  Metadata:
+    major_brand     : mp42
+    minor_version   : 0
+    compatible_brands: mp42mp41iso4
+    creation_time   : 2021-11-16T21:59:01.000000Z
+  Duration: 00:00:51.62, start: 0.000000, bitrate: 693 kb/s
+  Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, bt709, progressive), 576x1024, 558 kb/s, 30 fps, 30 tbr, 15360 tbn (default)
+      Metadata:
+        creation_time   : 2021-11-16T21:59:01.000000Z
+        handler_name    : Vireo Eyes v2.7.3
+        vendor_id       : [0][0][0][0]
+        encoder         : AVC Coding
+  Stream #0:1[0x2](und): Audio: aac (LC) (mp4a / 0x6134706D), 44100 Hz, stereo, fltp, 128 kb/s (default)
+      Metadata:
+        creation_time   : 2021-11-16T21:59:01.000000Z
+        handler_name    : Vireo Ears v2.7.3
+        vendor_id       : [0][0][0][0]
+[Parsed_vidstabtransform_0 @ 000002440cfc0e80] [Eval @ 000000fee75fd670] Undefined constant or missing '(' in '/Users/maxwe/AppData/Local/Temp/tmptrndt2jo/transforms.trf'
+[Parsed_vidstabtransform_0 @ 000002440cfc0e80] Unable to parse option value "/Users/maxwe/AppData/Local/Temp/tmptrndt2jo/transforms.trf"
+Error applying option 'smoothing' to filter 'vidstabtransform': Invalid argument
+[vost#0:0/h264_qsv @ 000002440ca44f40] Error initializing a simple filtergraph
+Error opening output file C:\Users\maxwe\Videos\Captures\test.mp4.
+Error opening output files: Invalid argument
+
+2025-12-08 17:35:10,333 - ERROR - Error processing video: FFmpeg command failed: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -y -i C:\Users\maxwe\Videos\Captures\backwards alphabet.mp4 -threads 24 -vf vidstabtransform=input=C:/Users/maxwe/AppData/Local/Temp/tmptrndt2jo/transforms.trf:smoothing=30:crop=black:zoom=-15:optzoom=0:interpol=linear -c:v h264_qsv -avoid_negative_ts make_zero -fflags +genpts -preset fast -global_quality 23 -c:a aac -b:a 128k C:\Users\maxwe\Videos\Captures\test.mp4
+2025-12-08 17:35:58,681 - INFO - ============================================================
+2025-12-08 17:35:58,682 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2025-12-08 17:35:58,682 - INFO - ============================================================
+2025-12-08 17:35:58,687 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2025-12-08 17:35:58,722 - DEBUG - Detected NVIDIA NVENC encoder
+2025-12-08 17:35:58,722 - DEBUG - Detected Intel Quick Sync encoder
+2025-12-08 17:35:58,722 - DEBUG - Detected AMD AMF encoder
+2025-12-08 17:36:05,364 - INFO - Using hardware encoder: NVIDIA NVENC (h264_nvenc)
+2025-12-08 17:36:05,921 - INFO - Using quality preset: balanced
+2025-12-08 17:36:06,208 - INFO - Using balanced stabilization preset
+2025-12-08 17:36:06,210 - INFO - Processing: backwards alphabet.mp4
+2025-12-08 17:36:06,210 - INFO - Output: test.mp4
+2025-12-08 17:36:06,210 - INFO - Using encoder: h264_nvenc
+2025-12-08 17:36:06,211 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -i C:\Users\maxwe\Videos\Captures\backwards alphabet.mp4 -vf vidstabdetect=shakiness=5:result=C:/Users/maxwe/AppData/Local/Temp/tmp5prvibwj/transforms.trf -f null - -threads 24
+2025-12-08 17:36:09,527 - INFO - Motion detection completed in 3.3s
+2025-12-08 17:36:09,528 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -y -i C:\Users\maxwe\Videos\Captures\backwards alphabet.mp4 -threads 24 -vf vidstabtransform=smoothing=30:crop=black:zoom=-15:optzoom=0:interpol=linear:input=C:/Users/maxwe/AppData/Local/Temp/tmp5prvibwj/transforms.trf -c:v h264_nvenc -avoid_negative_ts make_zero -fflags +genpts -preset p4 -rc vbr -b:v 5M -maxrate 8M -bufsize 10M -c:a aac -b:a 128k C:\Users\maxwe\Videos\Captures\test.mp4
+2025-12-08 17:36:13,555 - INFO - Video stabilization completed in 4.0s
+2025-12-08 17:36:13,557 - INFO -  Stabilized video saved to C:\Users\maxwe\Videos\Captures\test.mp4
+2025-12-08 17:36:48,362 - INFO - ============================================================
+2025-12-08 17:36:48,362 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2025-12-08 17:36:48,362 - INFO - ============================================================
+2025-12-08 17:36:48,372 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2025-12-08 17:36:48,415 - DEBUG - Detected NVIDIA NVENC encoder
+2025-12-08 17:36:48,415 - DEBUG - Detected Intel Quick Sync encoder
+2025-12-08 17:36:48,415 - DEBUG - Detected AMD AMF encoder
+2025-12-08 17:36:56,242 - INFO - Using hardware encoder: Intel Quick Sync (h264_qsv)
+2025-12-08 17:36:57,732 - INFO - Using quality preset: balanced
+2025-12-08 17:36:58,255 - INFO - Using balanced stabilization preset
+2025-12-08 17:36:58,256 - WARNING - Output file already exists and will be overwritten: C:\Users\maxwe\Videos\Captures\test.mp4
+2025-12-08 17:36:58,256 - INFO - Processing: backwards alphabet.mp4
+2025-12-08 17:36:58,256 - INFO - Output: test.mp4
+2025-12-08 17:36:58,257 - INFO - Using encoder: h264_qsv
+2025-12-08 17:36:58,257 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -i C:\Users\maxwe\Videos\Captures\backwards alphabet.mp4 -vf vidstabdetect=shakiness=5:result=C:/Users/maxwe/AppData/Local/Temp/tmps_8fy0yf/transforms.trf -f null - -threads 24
+2025-12-08 17:37:01,475 - INFO - Motion detection completed in 3.2s
+2025-12-08 17:37:01,477 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -y -i C:\Users\maxwe\Videos\Captures\backwards alphabet.mp4 -threads 24 -vf vidstabtransform=smoothing=30:crop=black:zoom=-15:optzoom=0:interpol=linear:input=C:/Users/maxwe/AppData/Local/Temp/tmps_8fy0yf/transforms.trf -c:v h264_qsv -avoid_negative_ts make_zero -fflags +genpts -preset fast -global_quality 23 -c:a aac -b:a 128k C:\Users\maxwe\Videos\Captures\test.mp4
+2025-12-08 17:37:05,905 - INFO - Video stabilization completed in 4.4s
+2025-12-08 17:37:05,907 - INFO -  Stabilized video saved to C:\Users\maxwe\Videos\Captures\test.mp4
+2025-12-08 17:37:33,124 - INFO - ============================================================
+2025-12-08 17:37:33,125 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2025-12-08 17:37:33,125 - INFO - ============================================================
+2025-12-08 17:37:33,128 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2025-12-08 17:37:33,175 - DEBUG - Detected NVIDIA NVENC encoder
+2025-12-08 17:37:33,175 - DEBUG - Detected Intel Quick Sync encoder
+2025-12-08 17:37:33,175 - DEBUG - Detected AMD AMF encoder
+2025-12-08 17:37:40,727 - INFO - Using hardware encoder: NVIDIA NVENC (h264_nvenc)
+2025-12-08 17:37:41,879 - INFO - Using quality preset: high
+2025-12-08 17:37:44,337 - INFO - Using high quality stabilization preset
+2025-12-08 17:37:44,338 - WARNING - Output file already exists and will be overwritten: C:\Users\maxwe\Videos\Captures\test.mp4
+2025-12-08 17:37:44,339 - INFO - Processing: backwards alphabet.mp4
+2025-12-08 17:37:44,339 - INFO - Output: test.mp4
+2025-12-08 17:37:44,339 - INFO - Using encoder: h264_nvenc
+2025-12-08 17:37:44,339 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -i C:\Users\maxwe\Videos\Captures\backwards alphabet.mp4 -vf vidstabdetect=shakiness=10:result=C:/Users/maxwe/AppData/Local/Temp/tmpicub6nki/transforms.trf -f null - -threads 24
+2025-12-08 17:37:47,556 - INFO - Motion detection completed in 3.2s
+2025-12-08 17:37:47,558 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -y -i C:\Users\maxwe\Videos\Captures\backwards alphabet.mp4 -threads 24 -vf vidstabtransform=smoothing=50:crop=black:zoom=-25:optzoom=0:interpol=linear:input=C:/Users/maxwe/AppData/Local/Temp/tmpicub6nki/transforms.trf -c:v h264_nvenc -avoid_negative_ts make_zero -fflags +genpts -preset p4 -rc vbr -b:v 8M -maxrate 12M -bufsize 16M -c:a aac -b:a 128k C:\Users\maxwe\Videos\Captures\test.mp4
+2025-12-08 17:37:51,487 - INFO - Video stabilization completed in 3.9s
+2025-12-08 17:37:51,488 - INFO -  Stabilized video saved to C:\Users\maxwe\Videos\Captures\test.mp4
+2025-12-08 17:38:21,098 - INFO - ============================================================
+2025-12-08 17:38:21,098 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2025-12-08 17:38:21,098 - INFO - ============================================================
+2025-12-08 17:38:21,102 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2025-12-08 17:38:21,142 - DEBUG - Detected NVIDIA NVENC encoder
+2025-12-08 17:38:21,143 - DEBUG - Detected Intel Quick Sync encoder
+2025-12-08 17:38:21,143 - DEBUG - Detected AMD AMF encoder
+2025-12-08 17:38:25,234 - INFO - No files selected. Exiting.
+2025-12-08 17:38:26,717 - INFO - ============================================================
+2025-12-08 17:38:26,717 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2025-12-08 17:38:26,717 - INFO - ============================================================
+2025-12-08 17:38:26,725 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2025-12-08 17:38:26,760 - DEBUG - Detected NVIDIA NVENC encoder
+2025-12-08 17:38:26,760 - DEBUG - Detected Intel Quick Sync encoder
+2025-12-08 17:38:26,760 - DEBUG - Detected AMD AMF encoder
+2025-12-08 17:38:34,274 - INFO - Using software encoder: libx264
+2025-12-08 17:38:36,061 - INFO - Using quality preset: balanced
+2025-12-08 17:38:36,206 - INFO - Using balanced stabilization preset
+2025-12-08 17:38:36,207 - INFO - Processing: NPC.mp4
+2025-12-08 17:38:36,207 - INFO - Output: test.mp4
+2025-12-08 17:38:36,207 - INFO - Using encoder: libx264
+2025-12-08 17:38:36,208 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -i C:\Users\maxwe\Videos\Captures\NPC.mp4 -vf vidstabdetect=shakiness=5:result=C:/Users/maxwe/AppData/Local/Temp/tmp5ol_nznt/transforms.trf -f null - -threads 24
+2025-12-08 17:38:48,874 - INFO - Motion detection completed in 12.7s
+2025-12-08 17:38:48,875 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -y -i C:\Users\maxwe\Videos\Captures\NPC.mp4 -threads 24 -vf vidstabtransform=smoothing=30:crop=black:zoom=-15:optzoom=0:interpol=linear:input=C:/Users/maxwe/AppData/Local/Temp/tmp5ol_nznt/transforms.trf -c:v libx264 -avoid_negative_ts make_zero -fflags +genpts -crf 23 -preset medium -c:a aac -b:a 128k C:\Users\maxwe\Videos\Captures\test.mp4
+2025-12-08 17:39:03,961 - INFO - Video stabilization completed in 15.1s
+2025-12-08 17:39:03,962 - INFO -  Stabilized video saved to C:\Users\maxwe\Videos\Captures\test.mp4
+2025-12-08 17:46:01,186 - INFO - ============================================================
+2025-12-08 17:46:01,186 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2025-12-08 17:46:01,186 - INFO - ============================================================
+2025-12-08 17:46:01,190 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2025-12-08 17:46:01,229 - DEBUG - Detected NVIDIA NVENC encoder
+2025-12-08 17:46:01,229 - DEBUG - Detected Intel Quick Sync encoder
+2025-12-08 17:46:01,229 - DEBUG - Detected AMD AMF encoder
+2025-12-08 17:46:16,266 - INFO - Using software encoder: libx264
+2025-12-08 17:46:16,674 - INFO - Using quality preset: high
+2025-12-08 17:46:16,978 - INFO - Using fast stabilization preset
+2025-12-08 17:46:16,979 - INFO - Processing: Mods are asleep, post videos of the cameradude being killed [2zq6vnw7pq5g1].mp4
+2025-12-08 17:46:16,979 - INFO - Output: 011.mp4
+2025-12-08 17:46:16,979 - INFO - Using encoder: libx264
+2025-12-08 17:46:16,980 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -i C:\Users\maxwe\Downloads\Mods are asleep, post videos of the cameradude being killed [2zq6vnw7pq5g1].mp4 -vf vidstabdetect=shakiness=5:result=C:/Users/maxwe/AppData/Local/Temp/tmp6qny2wge/transforms.trf -f null - -threads 24
+2025-12-08 17:46:17,584 - INFO - Motion detection completed in 0.6s
+2025-12-08 17:46:17,594 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -y -i C:\Users\maxwe\Downloads\Mods are asleep, post videos of the cameradude being killed [2zq6vnw7pq5g1].mp4 -threads 24 -vf vidstabtransform=smoothing=10:crop=black:zoom=-5:optzoom=0:interpol=linear:input=C:/Users/maxwe/AppData/Local/Temp/tmp6qny2wge/transforms.trf -c:v libx264 -avoid_negative_ts make_zero -fflags +genpts -crf 18 -preset slower -c:a aac -b:a 128k C:\Users\maxwe\Downloads\011.mp4
+2025-12-08 17:46:19,714 - INFO - Video stabilization completed in 2.1s
+2025-12-08 17:46:19,718 - INFO -  Stabilized video saved to C:\Users\maxwe\Downloads\011.mp4
+2025-12-08 17:46:38,911 - INFO - ============================================================
+2025-12-08 17:46:38,911 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2025-12-08 17:46:38,912 - INFO - ============================================================
+2025-12-08 17:46:38,915 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2025-12-08 17:46:38,952 - DEBUG - Detected NVIDIA NVENC encoder
+2025-12-08 17:46:38,952 - DEBUG - Detected Intel Quick Sync encoder
+2025-12-08 17:46:38,952 - DEBUG - Detected AMD AMF encoder
+2025-12-08 17:46:52,940 - INFO - Using software encoder: libx264
+2025-12-08 17:46:55,321 - INFO - Using quality preset: compressed
+2025-12-08 17:46:56,343 - INFO - Using high quality stabilization preset
+2025-12-08 17:46:56,344 - INFO - Processing: Mods are asleep, post videos of the cameradude being killed [2zq6vnw7pq5g1].mp4
+2025-12-08 17:46:56,344 - INFO - Output: 033.mp4
+2025-12-08 17:46:56,344 - INFO - Using encoder: libx264
+2025-12-08 17:46:56,345 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -i C:\Users\maxwe\Downloads\Mods are asleep, post videos of the cameradude being killed [2zq6vnw7pq5g1].mp4 -vf vidstabdetect=shakiness=10:result=C:/Users/maxwe/AppData/Local/Temp/tmp5onwk8o1/transforms.trf -f null - -threads 24
+2025-12-08 17:46:56,951 - INFO - Motion detection completed in 0.6s
+2025-12-08 17:46:56,952 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -y -i C:\Users\maxwe\Downloads\Mods are asleep, post videos of the cameradude being killed [2zq6vnw7pq5g1].mp4 -threads 24 -vf vidstabtransform=smoothing=50:crop=black:zoom=-25:optzoom=0:interpol=linear:input=C:/Users/maxwe/AppData/Local/Temp/tmp5onwk8o1/transforms.trf -c:v libx264 -avoid_negative_ts make_zero -fflags +genpts -crf 28 -preset fast -c:a aac -b:a 128k C:\Users\maxwe\Downloads\033.mp4
+2025-12-08 17:46:57,757 - INFO - Video stabilization completed in 0.8s
+2025-12-08 17:46:57,758 - INFO -  Stabilized video saved to C:\Users\maxwe\Downloads\033.mp4
+2025-12-08 17:47:21,250 - INFO - ============================================================
+2025-12-08 17:47:21,250 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2025-12-08 17:47:21,250 - INFO - ============================================================
+2025-12-08 17:47:21,254 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2025-12-08 17:47:21,303 - DEBUG - Detected NVIDIA NVENC encoder
+2025-12-08 17:47:21,303 - DEBUG - Detected Intel Quick Sync encoder
+2025-12-08 17:47:21,303 - DEBUG - Detected AMD AMF encoder
+2025-12-08 17:47:28,707 - INFO - Using software encoder: libx264
+2025-12-08 17:47:33,215 - INFO - Using quality preset: high
+2025-12-08 17:47:35,372 - INFO - Using high quality stabilization preset
+2025-12-08 17:47:35,373 - INFO - Processing: Mods are asleep, post videos of the cameradude being killed [2zq6vnw7pq5g1].mp4
+2025-12-08 17:47:35,374 - INFO - Output: 032.mp4
+2025-12-08 17:47:35,374 - INFO - Using encoder: libx264
+2025-12-08 17:47:35,374 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -i C:\Users\maxwe\Downloads\Mods are asleep, post videos of the cameradude being killed [2zq6vnw7pq5g1].mp4 -vf vidstabdetect=shakiness=10:result=C:/Users/maxwe/AppData/Local/Temp/tmpvzk1nsmc/transforms.trf -f null - -threads 24
+2025-12-08 17:47:36,080 - INFO - Motion detection completed in 0.7s
+2025-12-08 17:47:36,080 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -y -i C:\Users\maxwe\Downloads\Mods are asleep, post videos of the cameradude being killed [2zq6vnw7pq5g1].mp4 -threads 24 -vf vidstabtransform=smoothing=50:crop=black:zoom=-25:optzoom=0:interpol=linear:input=C:/Users/maxwe/AppData/Local/Temp/tmpvzk1nsmc/transforms.trf -c:v libx264 -avoid_negative_ts make_zero -fflags +genpts -crf 18 -preset slower -c:a aac -b:a 128k C:\Users\maxwe\Downloads\032.mp4
+2025-12-08 17:47:37,894 - INFO - Video stabilization completed in 1.8s
+2025-12-08 17:47:37,895 - INFO -  Stabilized video saved to C:\Users\maxwe\Downloads\032.mp4
+2025-12-08 17:48:12,370 - INFO - ============================================================
+2025-12-08 17:48:12,370 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2025-12-08 17:48:12,370 - INFO - ============================================================
+2025-12-08 17:48:12,374 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2025-12-08 17:48:12,410 - DEBUG - Detected NVIDIA NVENC encoder
+2025-12-08 17:48:12,410 - DEBUG - Detected Intel Quick Sync encoder
+2025-12-08 17:48:12,410 - DEBUG - Detected AMD AMF encoder
+2025-12-08 17:48:20,904 - INFO - Using hardware encoder: NVIDIA NVENC (h264_nvenc)
+2025-12-08 17:48:21,270 - INFO - Using quality preset: high
+2025-12-08 17:48:21,695 - INFO - Using fast stabilization preset
+2025-12-08 17:48:21,696 - INFO - Processing: Mods are asleep, post videos of the cameradude being killed [2zq6vnw7pq5g1].mp4
+2025-12-08 17:48:21,697 - INFO - Output: 111.mp4
+2025-12-08 17:48:21,697 - INFO - Using encoder: h264_nvenc
+2025-12-08 17:48:21,697 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -i C:\Users\maxwe\Downloads\Mods are asleep, post videos of the cameradude being killed [2zq6vnw7pq5g1].mp4 -vf vidstabdetect=shakiness=5:result=C:/Users/maxwe/AppData/Local/Temp/tmprtjtq16_/transforms.trf -f null - -threads 24
+2025-12-08 17:48:22,300 - INFO - Motion detection completed in 0.6s
+2025-12-08 17:48:22,300 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -y -i C:\Users\maxwe\Downloads\Mods are asleep, post videos of the cameradude being killed [2zq6vnw7pq5g1].mp4 -threads 24 -vf vidstabtransform=smoothing=10:crop=black:zoom=-5:optzoom=0:interpol=linear:input=C:/Users/maxwe/AppData/Local/Temp/tmprtjtq16_/transforms.trf -c:v h264_nvenc -avoid_negative_ts make_zero -fflags +genpts -preset p4 -rc vbr -b:v 8M -maxrate 12M -bufsize 16M -c:a aac -b:a 128k C:\Users\maxwe\Downloads\111.mp4
+2025-12-08 17:48:23,113 - INFO - Video stabilization completed in 0.8s
+2025-12-08 17:48:23,115 - INFO -  Stabilized video saved to C:\Users\maxwe\Downloads\111.mp4
+2025-12-08 17:48:25,519 - INFO - ============================================================
+2025-12-08 17:48:25,520 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2025-12-08 17:48:25,520 - INFO - ============================================================
+2025-12-08 17:48:25,524 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2025-12-08 17:48:25,560 - DEBUG - Detected NVIDIA NVENC encoder
+2025-12-08 17:48:25,560 - DEBUG - Detected Intel Quick Sync encoder
+2025-12-08 17:48:25,560 - DEBUG - Detected AMD AMF encoder
+2025-12-08 17:48:33,177 - INFO - Using hardware encoder: NVIDIA NVENC (h264_nvenc)
+2025-12-08 17:48:33,460 - INFO - Using quality preset: high
+2025-12-08 17:48:33,841 - INFO - Using high quality stabilization preset
+2025-12-08 17:48:33,843 - INFO - Processing: Mods are asleep, post videos of the cameradude being killed [2zq6vnw7pq5g1].mp4
+2025-12-08 17:48:33,843 - INFO - Output: 113.mp4
+2025-12-08 17:48:33,843 - INFO - Using encoder: h264_nvenc
+2025-12-08 17:48:33,844 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -i C:\Users\maxwe\Downloads\Mods are asleep, post videos of the cameradude being killed [2zq6vnw7pq5g1].mp4 -vf vidstabdetect=shakiness=10:result=C:/Users/maxwe/AppData/Local/Temp/tmpedyd76vt/transforms.trf -f null - -threads 24
+2025-12-08 17:48:34,449 - INFO - Motion detection completed in 0.6s
+2025-12-08 17:48:34,449 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -y -i C:\Users\maxwe\Downloads\Mods are asleep, post videos of the cameradude being killed [2zq6vnw7pq5g1].mp4 -threads 24 -vf vidstabtransform=smoothing=50:crop=black:zoom=-25:optzoom=0:interpol=linear:input=C:/Users/maxwe/AppData/Local/Temp/tmpedyd76vt/transforms.trf -c:v h264_nvenc -avoid_negative_ts make_zero -fflags +genpts -preset p4 -rc vbr -b:v 8M -maxrate 12M -bufsize 16M -c:a aac -b:a 128k C:\Users\maxwe\Downloads\113.mp4
+2025-12-08 17:48:35,254 - INFO - Video stabilization completed in 0.8s
+2025-12-08 17:48:35,255 - INFO -  Stabilized video saved to C:\Users\maxwe\Downloads\113.mp4
+2026-01-20 23:25:10,113 - INFO - ============================================================
+2026-01-20 23:25:10,113 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2026-01-20 23:25:10,113 - INFO - ============================================================
+2026-01-20 23:25:10,113 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2026-01-20 23:25:10,503 - DEBUG - Detected NVIDIA NVENC encoder
+2026-01-20 23:25:10,503 - DEBUG - Detected Intel Quick Sync encoder
+2026-01-20 23:25:10,503 - DEBUG - Detected AMD AMF encoder
