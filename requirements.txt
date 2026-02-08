@@ -1,0 +1,11 @@
+# Video Stabbot - Dependencies
+#
+# Core stabilization uses FFmpeg + libvidstab via the Electron UI.
+# The Python packages below are needed for the advanced modes
+# (Subject Lock and Panorama Mosaic).
+#
+# System requirement: FFmpeg with libvidstab support
+#   Install from https://ffmpeg.org/download.html
+
+opencv-python>=4.5.0
+numpy>=1.20.0

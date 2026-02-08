@@ -372,3 +372,35 @@ Error opening output files: Invalid argument
 2026-01-20 23:25:10,503 - DEBUG - Detected NVIDIA NVENC encoder
 2026-01-20 23:25:10,503 - DEBUG - Detected Intel Quick Sync encoder
 2026-01-20 23:25:10,503 - DEBUG - Detected AMD AMF encoder
+2026-01-20 23:36:05,576 - INFO - ============================================================
+2026-01-20 23:36:05,576 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2026-01-20 23:36:05,576 - INFO - ============================================================
+2026-01-20 23:36:05,582 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2026-01-20 23:36:05,618 - DEBUG - Detected NVIDIA NVENC encoder
+2026-01-20 23:36:05,618 - DEBUG - Detected Intel Quick Sync encoder
+2026-01-20 23:36:05,618 - DEBUG - Detected AMD AMF encoder
+2026-01-25 20:46:20,008 - INFO - ============================================================
+2026-01-25 20:46:20,008 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2026-01-25 20:46:20,008 - INFO - ============================================================
+2026-01-25 20:46:20,012 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2026-01-25 20:46:20,348 - DEBUG - Detected NVIDIA NVENC encoder
+2026-01-25 20:46:20,348 - DEBUG - Detected Intel Quick Sync encoder
+2026-01-25 20:46:20,348 - DEBUG - Detected AMD AMF encoder
+2026-01-25 20:46:35,108 - INFO - Using software encoder: libx264
+2026-01-25 20:46:37,056 - INFO - Using quality preset: high
+2026-01-25 20:46:38,844 - INFO - Using high quality stabilization preset
+2026-01-25 20:46:38,845 - INFO - Processing: 1a6ad2b321834d898e0a65948f77d431.MP4
+2026-01-25 20:46:38,846 - INFO - Output: vid.mp4
+2026-01-25 20:46:38,846 - INFO - Using encoder: libx264
+2026-01-25 20:46:38,847 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -i C:\Users\maxwe\Downloads\1a6ad2b321834d898e0a65948f77d431.MP4 -vf vidstabdetect=shakiness=10:result=C:/Users/maxwe/AppData/Local/Temp/tmp_ke0w88v/transforms.trf -f null - -threads 24
+2026-01-25 20:46:42,064 - INFO - Motion detection completed in 3.2s
+2026-01-25 20:46:42,064 - DEBUG - Running: C:\Program Files\ffmpeg\bin\ffmpeg.EXE -y -i C:\Users\maxwe\Downloads\1a6ad2b321834d898e0a65948f77d431.MP4 -threads 24 -vf vidstabtransform=smoothing=50:crop=black:zoom=-25:optzoom=0:interpol=linear:input=C:/Users/maxwe/AppData/Local/Temp/tmp_ke0w88v/transforms.trf -c:v libx264 -avoid_negative_ts make_zero -fflags +genpts -crf 18 -preset slower -c:a aac -b:a 128k C:\Users\maxwe\Downloads\vid.mp4
+2026-01-25 20:46:49,010 - INFO - Video stabilization completed in 6.9s
+2026-01-25 20:46:49,011 - INFO -  Stabilized video saved to C:\Users\maxwe\Downloads\vid.mp4
+2026-02-08 00:51:53,884 - INFO - ============================================================
+2026-02-08 00:51:53,884 - INFO - Video Stabbot - Automatic Video Stabilization Tool
+2026-02-08 00:51:53,884 - INFO - ============================================================
+2026-02-08 00:51:53,888 - INFO - FFmpeg found at: C:\Program Files\ffmpeg\bin\ffmpeg.EXE
+2026-02-08 00:51:53,925 - DEBUG - Detected NVIDIA NVENC encoder
+2026-02-08 00:51:53,925 - DEBUG - Detected Intel Quick Sync encoder
+2026-02-08 00:51:53,925 - DEBUG - Detected AMD AMF encoder
