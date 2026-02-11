@@ -5,12 +5,10 @@ contextBridge.exposeInMainWorld('stabbot', {
     getVideoInfo: (data) => ipcRenderer.invoke('get-video-info', data),
     selectFile: () => ipcRenderer.invoke('select-file'),
     selectSavePath: (defaultPath) => ipcRenderer.invoke('select-save-path', defaultPath),
-    selectSaveImagePath: (defaultPath) => ipcRenderer.invoke('select-save-image-path', defaultPath),
     startProcessing: (opts) => ipcRenderer.invoke('start-processing', opts),
     cancelProcessing: () => ipcRenderer.invoke('cancel-processing'),
     showInFolder: (filePath) => ipcRenderer.invoke('show-in-folder', filePath),
     runPythonScript: (opts) => ipcRenderer.invoke('run-python-script', opts),
-    getScriptsPath: () => ipcRenderer.invoke('get-scripts-path'),
     onProgress: (callback) => {
         ipcRenderer.on('progress', (_event, data) => callback(data));
     },

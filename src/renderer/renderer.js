@@ -9,10 +9,9 @@ let videoInfo = null;
 let outputPath = null;
 let elapsedTimer = null;
 let processingStart = null;
-let scriptsPath = null;
 
 // Views
-const VIEWS = ['loading', 'error', 'select', 'quality', 'custom', 'subject', 'panorama', 'processing', 'complete'];
+const VIEWS = ['loading', 'error', 'select', 'quality', 'custom', 'opencv', 'gyroflow', 'raft', 'processing', 'complete'];
 
 function showView(name) {
     VIEWS.forEach(v => {
@@ -65,21 +64,152 @@ function showToast(message, duration = 4000) {
 // Encoder Badge
 // ============================================================
 
-function updateBadges(encoder, hasPython) {
+function updateBadges(system) {
     const badge = document.getElementById('encoder-badge');
     const nameEl = document.getElementById('encoder-name');
-    nameEl.textContent = encoder.name;
+    nameEl.textContent = system.encoder.name;
     badge.classList.remove('hidden');
-    if (encoder.type === 'software') badge.classList.add('software');
+    if (system.encoder.type === 'software') badge.classList.add('software');
 
-    // Python availability affects Subject Lock and Panorama cards
-    const subjectBtn = document.getElementById('btn-subject');
-    const panoramaBtn = document.getElementById('btn-panorama');
-    if (!hasPython) {
-        subjectBtn.classList.add('disabled');
-        subjectBtn.title = 'Requires Python 3.8+ with opencv-python and numpy';
-        panoramaBtn.classList.add('disabled');
-        panoramaBtn.title = 'Requires Python 3.8+ with opencv-python and numpy';
+    // Show/hide advanced mode cards based on dependencies
+    const opencvBtn = document.getElementById('btn-opencv');
+    const gyroflowBtn = document.getElementById('btn-gyroflow');
+    const raftBtn = document.getElementById('btn-raft');
+
+    // OpenCV requires scipy
+    if (!system.hasScipy) {
+        opencvBtn.classList.add('disabled');
+        opencvBtn.title = 'Requires Python + SciPy\nInstall with: pip install scipy';
+        opencvBtn.style.pointerEvents = 'none';
+        opencvBtn.style.opacity = '0.5';
+    } else {
+        opencvBtn.classList.remove('disabled');
+        opencvBtn.title = '';
+        opencvBtn.style.pointerEvents = 'auto';
+        opencvBtn.style.opacity = '1';
+    }
+
+    // Gyroflow requires gyroflow-cli
+    if (system.gyroflow) {
+        gyroflowBtn.style.display = 'flex';
+    } else {
+        gyroflowBtn.style.display = 'none';
+    }
+
+    // RAFT requires PyTorch
+    if (system.hasTorch) {
+        raftBtn.style.display = 'flex';
+    } else {
+        raftBtn.style.display = 'none';
+    }
+}
+
+// ============================================================
+// Gyroflow Processing
+// ============================================================
+
+async function handleGyroflow() {
+    const settings = {
+        smoothing: parseFloat(document.getElementById('val-gyroflow-smoothing').value),
+        fov: parseInt(document.getElementById('val-gyroflow-fov').value),
+        lensProfile: document.getElementById('opt-gyroflow-lens').value,
+        horizonLock: document.getElementById('opt-gyroflow-horizon').checked,
+        resolution: document.getElementById('opt-gyroflow-resolution').value,
+    };
+
+    const savePath = await window.stabbot.selectSavePath(filePath);
+    if (!savePath) return;
+
+    outputPath = savePath;
+    showView('processing');
+    resetProcessingView('Checking gyroscope data\u2026');
+    startElapsed();
+
+    window.stabbot.onProgress(data => updateProgress(data));
+
+    try {
+        const result = await window.stabbot.runPythonScript({
+            scriptName: 'gyroflow_integration.py',
+            args: [
+                '--input', filePath,
+                '--output', outputPath,
+                '--gyroflow', system.gyroflow,
+                '--ffprobe', system.ffprobe,
+                '--smoothing', settings.smoothing.toString(),
+                '--fov', settings.fov.toString(),
+                '--lens-profile', settings.lensProfile,
+                settings.horizonLock ? '--horizon-lock' : '',
+                '--resolution', settings.resolution,
+            ].filter(arg => arg !== ''),
+            duration: videoInfo.duration,
+        });
+
+        window.stabbot.removeProgressListener();
+        stopElapsed();
+        showComplete(result);
+    } catch (err) {
+        window.stabbot.removeProgressListener();
+        stopElapsed();
+        if (err.message === 'CANCELLED') {
+            showView('quality');
+        } else {
+            showProcessingError(err.message);
+        }
+    }
+}
+
+// ============================================================
+// RAFT Deep Learning Processing
+// ============================================================
+
+async function handleRAFT() {
+    const settings = {
+        raftModel: getRadioValue('opt-raft-model'),
+        maxIterations: parseInt(document.getElementById('val-raft-iterations').value),
+        smoothingMethod: document.getElementById('opt-raft-smoothing-method').value,
+        smoothingStrength: parseInt(document.getElementById('val-raft-smoothing').value),
+        cropPercent: parseInt(document.getElementById('val-raft-crop').value),
+        resolution: document.getElementById('opt-raft-resolution').value,
+    };
+
+    const savePath = await window.stabbot.selectSavePath(filePath);
+    if (!savePath) return;
+
+    outputPath = savePath;
+    showView('processing');
+    resetProcessingView('Loading RAFT model\u2026');
+    startElapsed();
+
+    window.stabbot.onProgress(data => updateProgress(data));
+
+    try {
+        const result = await window.stabbot.runPythonScript({
+            scriptName: 'raft_dense_motion.py',
+            args: [
+                '--input', filePath,
+                '--output', outputPath,
+                '--ffmpeg', system.ffmpeg,
+                '--raft-model', settings.raftModel,
+                '--max-iterations', settings.maxIterations.toString(),
+                '--smoothing-method', settings.smoothingMethod,
+                '--smoothing-strength', settings.smoothingStrength.toString(),
+                '--crop-percent', settings.cropPercent.toString(),
+                '--resolution', settings.resolution,
+            ],
+            duration: videoInfo.duration,
+        });
+
+        window.stabbot.removeProgressListener();
+        stopElapsed();
+        showComplete(result);
+    } catch (err) {
+        window.stabbot.removeProgressListener();
+        stopElapsed();
+        if (err.message === 'CANCELLED') {
+            showView('quality');
+        } else {
+            showProcessingError(err.message);
+        }
     }
 }
 
@@ -169,44 +299,45 @@ async function handleQualityChoice(mode, customSettings) {
 }
 
 // ============================================================
-// Subject Lock Processing
+// OpenCV Feature Tracking Processing
 // ============================================================
 
-async function handleSubjectLock() {
-    if (!system.hasPythonDeps) {
-        showToast('Python + OpenCV required. Install: pip install opencv-python numpy');
-        return;
-    }
+async function handleOpenCV() {
+    const settings = {
+        detector: getRadioValue('opt-opencv-detector'),
+        maxFeatures: parseInt(document.getElementById('val-opencv-features').value),
+        transformType: getRadioValue('opt-opencv-transform'),
+        smoothingMethod: document.getElementById('opt-opencv-smoothing-method').value,
+        smoothingStrength: parseInt(document.getElementById('val-opencv-smoothing').value),
+        cropPercent: parseInt(document.getElementById('val-opencv-crop').value),
+        resolution: document.getElementById('opt-opencv-resolution').value,
+    };
 
     const savePath = await window.stabbot.selectSavePath(filePath);
     if (!savePath) return;
 
     outputPath = savePath;
-    const trackMode = getRadioValue('opt-track-mode');
-    const smooth = document.getElementById('opt-subject-smooth').value;
-    const scale = document.getElementById('opt-subject-scale').value;
-    const resolution = document.getElementById('opt-subject-resolution').value;
-
     showView('processing');
-    resetProcessingView('Tracking subject\u2026');
+    resetProcessingView('Detecting features\u2026');
     startElapsed();
+
     window.stabbot.onProgress(data => updateProgress(data));
 
     try {
-        const scriptFile = scriptsPath + (navigator.platform.includes('Win') ? '\\' : '/') + 'reframe.py';
-        const args = [
-            '--input', filePath,
-            '--output', outputPath,
-            '--mode', trackMode,
-            '--smoothing', smooth,
-            '--scale', scale,
-            '--resolution', resolution,
-            '--ffmpeg', system.ffmpeg,
-        ];
         const result = await window.stabbot.runPythonScript({
-            python: system.python,
-            script: scriptFile,
-            args: args,
+            scriptName: 'opencv_feature_tracking.py',
+            args: [
+                '--input', filePath,
+                '--output', outputPath,
+                '--ffmpeg', system.ffmpeg,
+                '--detector', settings.detector,
+                '--max-features', settings.maxFeatures.toString(),
+                '--transform-type', settings.transformType,
+                '--smoothing-method', settings.smoothingMethod,
+                '--smoothing-strength', settings.smoothingStrength.toString(),
+                '--crop-percent', settings.cropPercent.toString(),
+                '--resolution', settings.resolution,
+            ],
             duration: videoInfo.duration,
         });
         window.stabbot.removeProgressListener();
@@ -216,67 +347,7 @@ async function handleSubjectLock() {
         window.stabbot.removeProgressListener();
         stopElapsed();
         if (err.message === 'CANCELLED') {
-            showView('subject');
-        } else {
-            showProcessingError(err.message);
-        }
-    }
-}
-
-// ============================================================
-// Panorama Processing
-// ============================================================
-
-async function handlePanorama() {
-    if (!system.hasPythonDeps) {
-        showToast('Python + OpenCV required. Install: pip install opencv-python numpy');
-        return;
-    }
-
-    const outputType = getRadioValue('opt-pano-output');
-    let savePath;
-    if (outputType === 'image') {
-        savePath = await window.stabbot.selectSaveImagePath(filePath);
-    } else {
-        savePath = await window.stabbot.selectSavePath(filePath);
-    }
-    if (!savePath) return;
-
-    outputPath = savePath;
-    const detector = document.getElementById('opt-pano-detector').value;
-    const smooth = document.getElementById('opt-pano-smooth').value;
-    const blend = document.getElementById('opt-pano-blend').value;
-
-    showView('processing');
-    resetProcessingView('Building panorama\u2026');
-    startElapsed();
-    window.stabbot.onProgress(data => updateProgress(data));
-
-    try {
-        const scriptFile = scriptsPath + (navigator.platform.includes('Win') ? '\\' : '/') + 'mosaic.py';
-        const args = [
-            '--input', filePath,
-            '--output', outputPath,
-            '--type', outputType,
-            '--detector', detector,
-            '--smoothing', smooth,
-            '--blend', blend,
-            '--ffmpeg', system.ffmpeg,
-        ];
-        const result = await window.stabbot.runPythonScript({
-            python: system.python,
-            script: scriptFile,
-            args: args,
-            duration: videoInfo.duration,
-        });
-        window.stabbot.removeProgressListener();
-        stopElapsed();
-        showComplete(result);
-    } catch (err) {
-        window.stabbot.removeProgressListener();
-        stopElapsed();
-        if (err.message === 'CANCELLED') {
-            showView('panorama');
+            showView('opencv');
         } else {
             showProcessingError(err.message);
         }
@@ -304,12 +375,10 @@ function updateProgress(data) {
     const labels = {
         detect: 'Analyzing motion\u2026',
         transform: 'Stabilizing video\u2026',
-        tracking: 'Tracking subject\u2026',
-        reframing: 'Reframing video\u2026',
-        features: 'Extracting features\u2026',
-        homography: 'Computing transforms\u2026',
-        compositing: 'Compositing canvas\u2026',
-        encoding: 'Encoding output\u2026',
+        features: 'Detecting features\u2026',
+        trajectory: 'Smoothing trajectory\u2026',
+        loading: 'Loading AI model\u2026',
+        flow: 'Estimating optical flow\u2026',
         processing: 'Processing\u2026',
     };
     if (data.phase && labels[data.phase]) {
@@ -374,13 +443,55 @@ function initRadioGroup(groupId) {
 
 function initSlider(sliderId, valueId, formatter) {
     const slider = document.getElementById(sliderId);
-    const display = document.getElementById(valueId);
-    if (!slider || !display) return;
-    const update = () => {
-        display.textContent = formatter ? formatter(slider.value) : slider.value;
+    const valueInput = document.getElementById(valueId);
+    if (!slider || !valueInput) return;
+
+    // Check if valueInput is a number input or span
+    const isNumberInput = valueInput.tagName === 'INPUT';
+
+    // Slider -> Value display/input
+    const updateFromSlider = () => {
+        const value = slider.value;
+        if (isNumberInput) {
+            valueInput.value = formatter ? formatter(value) : value;
+        } else {
+            valueInput.textContent = formatter ? formatter(value) : value;
+        }
     };
-    slider.addEventListener('input', update);
-    update();
+
+    // Input -> Slider (only for number inputs)
+    if (isNumberInput) {
+        valueInput.addEventListener('input', () => {
+            let val = parseFloat(valueInput.value);
+            const min = parseFloat(valueInput.min);
+            const max = parseFloat(valueInput.max);
+
+            if (!isNaN(val)) {
+                // Clamp value to min/max
+                val = Math.max(min, Math.min(max, val));
+                slider.value = val;
+                valueInput.value = val;
+            }
+        });
+
+        // Also sync on blur to clean up invalid input
+        valueInput.addEventListener('blur', () => {
+            let val = parseFloat(valueInput.value);
+            const min = parseFloat(valueInput.min);
+            const max = parseFloat(valueInput.max);
+
+            if (isNaN(val)) {
+                val = parseFloat(slider.value);
+            } else {
+                val = Math.max(min, Math.min(max, val));
+            }
+            valueInput.value = val;
+            slider.value = val;
+        });
+    }
+
+    slider.addEventListener('input', updateFromSlider);
+    updateFromSlider();
 }
 
 function initToggle(toggleId, labelId) {
@@ -395,18 +506,20 @@ function initToggle(toggleId, labelId) {
 function gatherCustomSettings() {
     return {
         crop: getRadioValue('opt-border'),
-        smoothing: parseInt(document.getElementById('opt-smoothing').value),
-        shakiness: parseInt(document.getElementById('opt-shakiness').value),
-        accuracy: parseInt(document.getElementById('opt-accuracy').value),
+        smoothing: parseInt(document.getElementById('val-smoothing').value),
+        shakiness: parseInt(document.getElementById('val-shakiness').value),
+        accuracy: parseInt(document.getElementById('val-accuracy').value),
         optzoom: parseInt(getRadioValue('opt-optzoom')),
-        zoom: parseInt(document.getElementById('opt-zoom').value),
+        zoom: parseInt(document.getElementById('val-zoom').value),
         interpol: document.getElementById('opt-interpol').value,
         encoding: document.getElementById('opt-encoding').value,
         tripod: document.getElementById('opt-tripod').checked,
-        maxshift: parseInt(document.getElementById('opt-maxshift').value),
-        maxangle: parseFloat(document.getElementById('opt-maxangle').value),
-        stepsize: parseInt(document.getElementById('opt-stepsize').value),
-        mincontrast: parseFloat(document.getElementById('opt-mincontrast').value),
+        relative: document.getElementById('opt-relative').checked,
+        zoomspeed: parseFloat(document.getElementById('val-zoomspeed').value),
+        maxshift: parseInt(document.getElementById('val-maxshift').value),
+        maxangle: parseFloat(document.getElementById('val-maxangle').value),
+        stepsize: parseInt(document.getElementById('val-stepsize').value),
+        mincontrast: parseFloat(document.getElementById('val-mincontrast').value),
     };
 }
 
@@ -469,25 +582,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Quality cards
-    document.getElementById('btn-quick').addEventListener('click', () => handleQualityChoice('quick'));
     document.getElementById('btn-hq').addEventListener('click', () => handleQualityChoice('highQuality'));
     document.getElementById('btn-custom').addEventListener('click', () => showView('custom'));
-
-    // Advanced mode cards
-    document.getElementById('btn-subject').addEventListener('click', () => {
-        if (!system.hasPythonDeps) {
-            showToast('Requires Python 3.8+ with: pip install opencv-python numpy');
-            return;
-        }
-        showView('subject');
-    });
-    document.getElementById('btn-panorama').addEventListener('click', () => {
-        if (!system.hasPythonDeps) {
-            showToast('Requires Python 3.8+ with: pip install opencv-python numpy');
-            return;
-        }
-        showView('panorama');
-    });
+    document.getElementById('btn-opencv').addEventListener('click', () => showView('opencv'));
 
     // Custom settings
     initRadioGroup('opt-border');
@@ -495,12 +592,14 @@ document.addEventListener('DOMContentLoaded', () => {
     initSlider('opt-smoothing', 'val-smoothing');
     initSlider('opt-shakiness', 'val-shakiness');
     initSlider('opt-accuracy', 'val-accuracy');
-    initSlider('opt-zoom', 'val-zoom', v => `${v}%`);
-    initSlider('opt-maxshift', 'val-maxshift', v => v === '0' ? 'unlimited' : `${v} px`);
-    initSlider('opt-maxangle', 'val-maxangle', v => v === '0' ? 'unlimited' : `${v}\u00b0`);
+    initSlider('opt-zoom', 'val-zoom');
+    initSlider('opt-zoomspeed', 'val-zoomspeed');
+    initSlider('opt-maxshift', 'val-maxshift');
+    initSlider('opt-maxangle', 'val-maxangle');
     initSlider('opt-stepsize', 'val-stepsize');
     initSlider('opt-mincontrast', 'val-mincontrast');
     initToggle('opt-tripod', 'lbl-tripod');
+    initToggle('opt-relative', 'lbl-relative');
 
     document.getElementById('btn-custom-back').addEventListener('click', () => showView('quality'));
     document.getElementById('btn-custom-start').addEventListener('click', () => {
@@ -508,18 +607,31 @@ document.addEventListener('DOMContentLoaded', () => {
         handleQualityChoice('custom', settings);
     });
 
-    // Subject lock settings
-    initRadioGroup('opt-track-mode');
-    initSlider('opt-subject-smooth', 'val-subject-smooth');
-    initSlider('opt-subject-scale', 'val-subject-scale', v => `${v}%`);
-    document.getElementById('btn-subject-back').addEventListener('click', () => showView('quality'));
-    document.getElementById('btn-subject-start').addEventListener('click', handleSubjectLock);
+    // OpenCV settings
+    initRadioGroup('opt-opencv-detector');
+    initRadioGroup('opt-opencv-transform');
+    initSlider('opt-opencv-features', 'val-opencv-features');
+    initSlider('opt-opencv-smoothing', 'val-opencv-smoothing');
+    initSlider('opt-opencv-crop', 'val-opencv-crop');
+    document.getElementById('btn-opencv-back').addEventListener('click', () => showView('quality'));
+    document.getElementById('btn-opencv-start').addEventListener('click', handleOpenCV);
 
-    // Panorama settings
-    initRadioGroup('opt-pano-output');
-    initSlider('opt-pano-smooth', 'val-pano-smooth');
-    document.getElementById('btn-pano-back').addEventListener('click', () => showView('quality'));
-    document.getElementById('btn-pano-start').addEventListener('click', handlePanorama);
+    // Gyroflow settings
+    initSlider('opt-gyroflow-smoothing', 'val-gyroflow-smoothing');
+    initSlider('opt-gyroflow-fov', 'val-gyroflow-fov');
+    initToggle('opt-gyroflow-horizon', 'lbl-gyroflow-horizon');
+    document.getElementById('btn-gyroflow').addEventListener('click', () => showView('gyroflow'));
+    document.getElementById('btn-gyroflow-back').addEventListener('click', () => showView('quality'));
+    document.getElementById('btn-gyroflow-start').addEventListener('click', handleGyroflow);
+
+    // RAFT settings
+    initRadioGroup('opt-raft-model');
+    initSlider('opt-raft-iterations', 'val-raft-iterations');
+    initSlider('opt-raft-smoothing', 'val-raft-smoothing');
+    initSlider('opt-raft-crop', 'val-raft-crop');
+    document.getElementById('btn-raft').addEventListener('click', () => showView('raft'));
+    document.getElementById('btn-raft-back').addEventListener('click', () => showView('quality'));
+    document.getElementById('btn-raft-start').addEventListener('click', handleRAFT);
 
     // Back button
     document.getElementById('btn-back').addEventListener('click', resetToFileSelect);
@@ -562,13 +674,12 @@ async function init() {
     showView('loading');
     try {
         system = await window.stabbot.detectSystem();
-        scriptsPath = await window.stabbot.getScriptsPath();
         if (!system.ok) {
             document.getElementById('error-message').textContent = system.error;
             showView('error');
             return;
         }
-        updateBadges(system.encoder, system.hasPythonDeps);
+        updateBadges(system);
         showView('select');
     } catch (err) {
         document.getElementById('error-message').textContent = `Startup error: ${err.message}`;

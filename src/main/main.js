@@ -4,6 +4,9 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
+// Set to true to enable verbose Python script logging
+const DEBUG = false;
+
 let mainWindow;
 let currentProcess = null;
 let cancelled = false;
@@ -27,26 +30,173 @@ function findExecutable(name) {
 }
 
 function findPython() {
-    for (const name of ['python3', 'python']) {
-        const p = findExecutable(name);
-        if (p) {
-            try {
-                const ver = execFileSync(p, ['--version'], {
-                    encoding: 'utf8',
-                    timeout: 5000,
-                    stdio: ['pipe', 'pipe', 'pipe'],
-                });
-                const match = (ver || '').match(/(\d+)\.(\d+)/);
-                if (match && parseInt(match[1]) >= 3 && parseInt(match[2]) >= 8) return p;
-            } catch {}
+    // Try to find all Python installations (where/which returns multiple results)
+    const candidateNames = process.platform === 'win32'
+        ? ['py', 'python3', 'python']
+        : ['python3', 'python'];
+
+    for (const name of candidateNames) {
+        try {
+            const cmd = process.platform === 'win32' ? 'where' : 'which';
+            const result = execSync(`${cmd} ${name}`, {
+                encoding: 'utf8',
+                timeout: 5000,
+                stdio: ['pipe', 'pipe', 'pipe'],
+            });
+
+            // Get all paths (split by newline)
+            const paths = result.trim().split(/\r?\n/).map(p => p.trim()).filter(Boolean);
+
+            // Try each path, validating WindowsApps aliases instead of blindly skipping them
+            for (const p of paths) {
+                try {
+                    // For 'py' launcher, get the actual Python path
+                    let pythonPath = p;
+                    if (name === 'py') {
+                        // Use py launcher to get actual Python executable path
+                        const pyPath = execFileSync(p, ['-c', 'import sys; print(sys.executable)'], {
+                            encoding: 'utf8',
+                            timeout: 5000,
+                            stdio: ['pipe', 'pipe', 'pipe'],
+                        }).trim();
+                        if (pyPath) {
+                            pythonPath = pyPath;
+                        } else {
+                            continue;
+                        }
+                    } else if (p.includes('WindowsApps') || p.includes('Microsoft\\WindowsApps')) {
+                        // WindowsApps paths may be valid MSIX execution aliases or
+                        // fake Store redirects. Resolve to the real executable path.
+                        try {
+                            const resolved = execFileSync(p, ['-c', 'import sys; print(sys.executable)'], {
+                                encoding: 'utf8',
+                                timeout: 5000,
+                                stdio: ['pipe', 'pipe', 'pipe'],
+                            }).trim();
+                            if (resolved) {
+                                pythonPath = resolved;
+                            } else {
+                                continue;
+                            }
+                        } catch {
+                            // Not a real Python — skip this WindowsApps path
+                            continue;
+                        }
+                    }
+
+                    // Test if this Python works and check version
+                    const ver = execFileSync(pythonPath, ['--version'], {
+                        encoding: 'utf8',
+                        timeout: 5000,
+                        stdio: ['pipe', 'pipe', 'pipe'],
+                    });
+                    const match = (ver || '').match(/(\d+)\.(\d+)/);
+                    if (match && parseInt(match[1]) >= 3 && parseInt(match[2]) >= 8) {
+                        return pythonPath;
+                    }
+                } catch {
+                    // This Python path doesn't work, try next
+                    continue;
+                }
+            }
+        } catch {
+            // Command failed, try next name
+            continue;
         }
     }
+
+    // On Windows, also try common installation directories
+    if (process.platform === 'win32') {
+        const commonPaths = [
+            path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'Python'),
+            'C:\\Python311',
+            'C:\\Python310',
+            'C:\\Python39',
+            'C:\\Python38',
+        ];
+
+        for (const dir of commonPaths) {
+            if (!fs.existsSync(dir)) continue;
+
+            try {
+                const pythonExe = path.join(dir, 'python.exe');
+                if (fs.existsSync(pythonExe)) {
+                    const ver = execFileSync(pythonExe, ['--version'], {
+                        encoding: 'utf8',
+                        timeout: 5000,
+                        stdio: ['pipe', 'pipe', 'pipe'],
+                    });
+                    const match = (ver || '').match(/(\d+)\.(\d+)/);
+                    if (match && parseInt(match[1]) >= 3 && parseInt(match[2]) >= 8) {
+                        return pythonExe;
+                    }
+                }
+
+                // Also check subdirectories like Python311, Python310, etc.
+                const subdirs = fs.readdirSync(dir);
+                for (const subdir of subdirs) {
+                    const pythonExe = path.join(dir, subdir, 'python.exe');
+                    if (fs.existsSync(pythonExe)) {
+                        try {
+                            const ver = execFileSync(pythonExe, ['--version'], {
+                                encoding: 'utf8',
+                                timeout: 5000,
+                                stdio: ['pipe', 'pipe', 'pipe'],
+                            });
+                            const match = (ver || '').match(/(\d+)\.(\d+)/);
+                            if (match && parseInt(match[1]) >= 3 && parseInt(match[2]) >= 8) {
+                                return pythonExe;
+                            }
+                        } catch {
+                            continue;
+                        }
+                    }
+                }
+            } catch {
+                continue;
+            }
+        }
+    }
+
+    return null;
+}
+
+function findGyroflow() {
+    // Try PATH first
+    let gyro = findExecutable('gyroflow-cli');
+    if (gyro) return gyro;
+
+    // Try platform-specific default locations
+    const commonPaths = {
+        win32: 'C:\\Program Files\\Gyroflow\\gyroflow-cli.exe',
+        darwin: '/Applications/Gyroflow.app/Contents/MacOS/gyroflow-cli',
+        linux: '/usr/bin/gyroflow-cli',
+    };
+
+    const platformPath = commonPaths[process.platform];
+    if (platformPath && fs.existsSync(platformPath)) {
+        return platformPath;
+    }
+
     return null;
 }
 
 function checkPythonDeps(pythonPath) {
     try {
         execFileSync(pythonPath, ['-c', 'import cv2; import numpy'], {
+            encoding: 'utf8',
+            timeout: 10000,
+            stdio: ['pipe', 'pipe', 'pipe'],
+        });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function checkPythonPackage(pythonPath, packageName) {
+    try {
+        execFileSync(pythonPath, ['-c', `import ${packageName}`], {
             encoding: 'utf8',
             timeout: 10000,
             stdio: ['pipe', 'pipe', 'pipe'],
@@ -133,22 +283,6 @@ function getVideoInfo(ffprobePath, filePath) {
 // ============================================================
 
 const PRESETS = {
-    quick: {
-        shakiness: 5,
-        accuracy: 9,
-        smoothing: 10,
-        interpol: 'bilinear',
-        optzoom: 1,
-        zoom: 0,
-        crop: 'black',
-        encoding: {
-            software: ['-preset', 'fast', '-crf', '23'],
-            nvenc: ['-preset', 'p4', '-rc', 'vbr', '-b:v', '5M', '-maxrate', '8M', '-bufsize', '10M'],
-            qsv: ['-preset', 'fast', '-global_quality', '23'],
-            amf: ['-usage', 'transcoding', '-rc', 'vbr_latency', '-b:v', '5M'],
-            videotoolbox: ['-b:v', '5M'],
-        },
-    },
     highQuality: {
         shakiness: 10,
         accuracy: 15,
@@ -201,12 +335,14 @@ function buildCustomPreset(settings, encoder) {
     return {
         shakiness: clamp(settings.shakiness ?? 8, 1, 10),
         accuracy: clamp(settings.accuracy ?? 15, 1, 15),
-        smoothing: clamp(settings.smoothing ?? 30, 1, 200),
+        smoothing: clamp(settings.smoothing ?? 30, 1, 300),
         interpol: ['linear', 'bilinear', 'bicubic'].includes(settings.interpol) ? settings.interpol : 'bicubic',
         optzoom: clamp(settings.optzoom ?? 1, 0, 2),
         zoom: clamp(settings.zoom ?? 0, -50, 50),
+        zoomspeed: clamp(settings.zoomspeed ?? 0.25, 0, 5),
         crop: settings.crop === 'keep' ? 'keep' : 'black',
         tripod: settings.tripod ? 1 : 0,
+        relative: settings.relative ? 1 : 0,
         maxshift: clamp(settings.maxshift ?? 0, 0, 500),
         maxangle: settings.maxangle ?? 0,
         stepsize: clamp(settings.stepsize ?? 6, 1, 32),
@@ -260,6 +396,7 @@ function stabilize(ffmpegPath, input, output, mode, encoder, duration, event, cu
         // ---- Phase 1: Motion Detection ----
         let detectFilter = `vidstabdetect=shakiness=${preset.shakiness}:accuracy=${preset.accuracy}:stepsize=${preset.stepsize || 6}:mincontrast=${preset.mincontrast ?? 0.25}:result=${trfFile}`;
         if (preset.tripod) detectFilter += ':tripod=1';
+        if (preset.relative) detectFilter += ':relative=1';
         const detectArgs = [
             '-y', '-i', input,
             '-vf', detectFilter,
@@ -311,6 +448,8 @@ function stabilize(ffmpegPath, input, output, mode, encoder, duration, event, cu
                 `:interpol=${preset.interpol}` +
                 `:input=${trfFile}`;
             if (preset.tripod) filter += ':tripod=1';
+            if (preset.relative) filter += ':relative=1';
+            if (preset.zoomspeed !== undefined && preset.zoomspeed > 0) filter += `:zoomspeed=${preset.zoomspeed}`;
             if (preset.maxshift > 0) filter += `:maxshift=${preset.maxshift}`;
             if (preset.maxangle > 0) filter += `:maxangle=${(preset.maxangle * Math.PI / 180).toFixed(4)}`;
 
@@ -428,7 +567,21 @@ ipcMain.handle('detect-system', async () => {
     const encoder = detectEncoder(ffmpeg);
     const python = findPython();
     const hasPythonDeps = python ? checkPythonDeps(python) : false;
-    return { ok: true, ffmpeg, ffprobe, encoder, python, hasPythonDeps };
+    const hasScipy = python ? checkPythonPackage(python, 'scipy') : false;
+    const hasTorch = python ? checkPythonPackage(python, 'torch') : false;
+    const gyroflow = findGyroflow();
+
+    return {
+        ok: true,
+        ffmpeg,
+        ffprobe,
+        encoder,
+        python,
+        hasPythonDeps,
+        hasScipy,
+        hasTorch,
+        gyroflow,
+    };
 });
 
 ipcMain.handle('get-video-info', async (_e, { ffprobe, filePath }) => {
@@ -479,26 +632,18 @@ ipcMain.handle('show-in-folder', async (_e, filePath) => {
     shell.showItemInFolder(filePath);
 });
 
-ipcMain.handle('select-save-image-path', async (_e, defaultPath) => {
-    const parsed = path.parse(defaultPath);
-    const result = await dialog.showSaveDialog(mainWindow, {
-        title: 'Save Panorama Image',
-        defaultPath: path.join(parsed.dir, `${parsed.name}_panorama.jpg`),
-        filters: [
-            { name: 'JPEG Image', extensions: ['jpg', 'jpeg'] },
-            { name: 'PNG Image', extensions: ['png'] },
-            { name: 'All Files', extensions: ['*'] },
-        ],
-    });
-    return result.canceled ? null : result.filePath;
-});
-
-ipcMain.handle('run-python-script', async (event, { python, script, args, duration }) => {
-    return runPythonScript(python, script, args, duration, event);
-});
-
-ipcMain.handle('get-scripts-path', async () => {
-    return path.join(__dirname, '..', '..', 'scripts');
+ipcMain.handle('run-python-script', async (event, { scriptName, args, duration }) => {
+    const PATHS = {
+        python: findPython(),
+    };
+    if (!PATHS.python) {
+        throw new Error('Python 3.8+ not found. Please install Python to use advanced modes.');
+    }
+    const scriptPath = path.join(__dirname, '..', '..', 'scripts', scriptName);
+    if (!fs.existsSync(scriptPath)) {
+        throw new Error(`Script not found: ${scriptName}`);
+    }
+    return runPythonScript(PATHS.python, scriptPath, args, duration, event);
 });
 
 // ============================================================
@@ -524,24 +669,59 @@ function runPythonScript(pythonPath, scriptPath, args, duration, event) {
                     if (msg.ok) {
                         // Final result line — store for close handler
                         proc._resultJSON = msg;
+                        if (DEBUG) console.log('[python] ✓ Script completed successfully');
                     } else if (msg.phase !== undefined || msg.progress !== undefined) {
+                        if (DEBUG) {
+                            const pct = (msg.progress || 0).toFixed(1);
+                            const detail = msg.message || '';
+                            console.log(`[python] [${msg.phase || 'processing'}] ${pct}% ${detail}`);
+                        }
                         send(event, 'progress', {
                             phase: msg.phase || 'processing',
                             percent: msg.progress || 0,
                             overall: msg.progress || 0,
                         });
+                    } else if (msg.error) {
+                        if (DEBUG) console.error(`[python] ERROR: ${msg.error}`);
+                    } else {
+                        if (DEBUG) console.log(`[python] ${line}`);
                     }
-                } catch {}
+                } catch {
+                    if (DEBUG) console.log(`[python] ${line}`);
+                }
             }
         });
 
         proc.stderr.on('data', data => {
-            stderr += data.toString();
+            const chunk = data.toString();
+            stderr += chunk;
+            if (DEBUG) {
+                const lines = chunk.split('\n').filter(l => l.trim());
+                for (const line of lines) {
+                    console.warn(`[python:stderr] ${line}`);
+                }
+            }
         });
 
         proc.on('error', err => {
             currentProcess = null;
-            reject(new Error(`Failed to start Python: ${err.message}`));
+            let errorMsg = `Failed to start Python: ${err.message}`;
+
+            // Provide helpful context for common errors
+            if (err.code === 'ENOENT') {
+                errorMsg =
+                    'Python installation not found or not working.\n\n' +
+                    'Common causes:\n' +
+                    '• Windows Store Python stub detected (not a real installation)\n' +
+                    '• Python not installed or not in system PATH\n\n' +
+                    'Solution:\n' +
+                    '1. Install Python from python.org (not Microsoft Store)\n' +
+                    '2. During installation, check "Add Python to PATH"\n' +
+                    '3. Restart this application after installing Python\n\n' +
+                    `Detected path: ${pythonPath}`;
+            }
+
+            reject(new Error(errorMsg));
         });
 
         proc.on('close', code => {

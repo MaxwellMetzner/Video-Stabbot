@@ -25,6 +25,12 @@
     --hq-glow: rgba(168, 85, 247, 0.15);
     --custom-accent: #f59e0b;
     --custom-glow: rgba(245, 158, 11, 0.15);
+    --opencv-accent: #14b8a6;
+    --opencv-glow: rgba(20, 184, 166, 0.15);
+    --gyroflow-accent: #06b6d4;
+    --gyroflow-glow: rgba(6, 182, 212, 0.15);
+    --raft-accent: #8b5cf6;
+    --raft-glow: rgba(139, 92, 246, 0.15);
     --subject-accent: #14b8a6;
     --subject-glow: rgba(20, 184, 166, 0.15);
     --pano-accent: #f472b6;
@@ -419,6 +425,24 @@ h2 {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--custom-accent), 0 0 24px var(--custom-glow);
 }
 
+.quality-card.card-opencv:hover,
+.quality-card.card-opencv:focus-visible {
+    border-color: var(--opencv-accent);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--opencv-accent), 0 0 24px var(--opencv-glow);
+}
+
+.quality-card.card-gyroflow:hover,
+.quality-card.card-gyroflow:focus-visible {
+    border-color: var(--gyroflow-accent);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--gyroflow-accent), 0 0 24px var(--gyroflow-glow);
+}
+
+.quality-card.card-raft:hover,
+.quality-card.card-raft:focus-visible {
+    border-color: var(--raft-accent);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--raft-accent), 0 0 24px var(--raft-glow);
+}
+
 .quality-card.card-subject:hover,
 .quality-card.card-subject:focus-visible {
     border-color: var(--subject-accent);
@@ -725,6 +749,82 @@ h2 {
     font-variant-numeric: tabular-nums;
     min-width: 36px;
     text-align: right;
+}
+
+/* Number input for manual value entry */
+.setting-value-input {
+    width: 80px;
+    padding: 4px 8px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--accent);
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: right;
+    transition: all 0.2s;
+}
+
+.setting-value-input:hover {
+    border-color: var(--border-hover);
+    background: var(--bg-surface-hover);
+}
+
+.setting-value-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Remove spinner arrows */
+.setting-value-input::-webkit-outer-spin-button,
+.setting-value-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.setting-value-input[type=number] {
+    -moz-appearance: textfield;
+}
+
+/* Tooltips */
+[data-tooltip] {
+    position: relative;
+    cursor: help;
+}
+
+[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: normal;
+    max-width: 280px;
+    width: max-content;
+    z-index: 1000;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border);
+    pointer-events: none;
+}
+
+[data-tooltip]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: var(--bg-secondary);
+    z-index: 1001;
+    pointer-events: none;
 }
 
 .setting-hint {
