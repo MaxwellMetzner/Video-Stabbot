@@ -89,10 +89,16 @@ function updateBadges(system) {
     }
 
     // RAFT requires PyTorch
-    if (system.hasTorch) {
-        raftBtn.style.display = 'flex';
+    if (!system.hasTorch) {
+        raftBtn.classList.add('disabled');
+        raftBtn.title = 'Requires Python + PyTorch\nInstall with: pip install torch torchvision';
+        raftBtn.style.pointerEvents = 'none';
+        raftBtn.style.opacity = '0.5';
     } else {
-        raftBtn.style.display = 'none';
+        raftBtn.classList.remove('disabled');
+        raftBtn.title = '';
+        raftBtn.style.pointerEvents = 'auto';
+        raftBtn.style.opacity = '1';
     }
 }
 

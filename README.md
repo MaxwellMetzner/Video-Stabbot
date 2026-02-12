@@ -34,7 +34,7 @@ Video Stabbot is a desktop app for stabilizing shaky video footage. It supports 
 
 ### General Features
 - **GPU Acceleration** — Auto-detects NVIDIA NVENC, Intel QSV, AMD AMF, or Apple VideoToolbox; falls back to CPU (libx264)
-- **Smart Dependency Detection** — Advanced modes automatically show/hide based on installed dependencies
+- **Smart Dependency Detection** — Advanced modes are grayed out with installation instructions when dependencies are missing
 - **Drag-and-drop or file-picker** — Easy video input
 - **Real-time progress tracking** — Phase labels, progress bar, and elapsed time
 - **Tooltips** — Hover over any setting for detailed explanations
@@ -137,9 +137,13 @@ Video-Stabbot/
 
 ## Troubleshooting
 
-### Advanced modes don't show up
-- **OpenCV**: Install `pip install scipy` — required for trajectory smoothing
-- **RAFT**: Install `pip install torch torchvision` (large download ~2-4GB)
+### Advanced modes are grayed out
+- **OpenCV**: Grayed out if SciPy is not installed — required for trajectory smoothing
+  - Install with: `pip install scipy`
+- **RAFT**: Grayed out if PyTorch is not installed (large download ~2-4GB)
+  - Install with: `pip install torch torchvision`
+  - CPU version: `pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu`
+  - GPU version (recommended): `pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118`
 
 ### RAFT mode is very slow
 - RAFT requires significant computing power
