@@ -376,7 +376,6 @@ function stabilize(ffmpegPath, input, output, mode, encoder, duration, event, cu
         // ---- Phase 1: Motion Detection ----
         let detectFilter = `vidstabdetect=shakiness=${preset.shakiness}:accuracy=${preset.accuracy}:stepsize=${preset.stepsize || 6}:mincontrast=${preset.mincontrast ?? 0.25}:result=${trfFile}`;
         if (preset.tripod) detectFilter += ':tripod=1';
-        if (preset.relative) detectFilter += ':relative=1';
         const detectArgs = [
             '-y', '-i', input,
             '-vf', detectFilter,
