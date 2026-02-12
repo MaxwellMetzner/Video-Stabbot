@@ -161,25 +161,6 @@ function findPython() {
     return null;
 }
 
-function findGyroflow() {
-    // Try PATH first
-    let gyro = findExecutable('gyroflow-cli');
-    if (gyro) return gyro;
-
-    // Try platform-specific default locations
-    const commonPaths = {
-        win32: 'C:\\Program Files\\Gyroflow\\gyroflow-cli.exe',
-        darwin: '/Applications/Gyroflow.app/Contents/MacOS/gyroflow-cli',
-        linux: '/usr/bin/gyroflow-cli',
-    };
-
-    const platformPath = commonPaths[process.platform];
-    if (platformPath && fs.existsSync(platformPath)) {
-        return platformPath;
-    }
-
-    return null;
-}
 
 function checkPythonDeps(pythonPath) {
     try {
@@ -569,7 +550,6 @@ ipcMain.handle('detect-system', async () => {
     const hasPythonDeps = python ? checkPythonDeps(python) : false;
     const hasScipy = python ? checkPythonPackage(python, 'scipy') : false;
     const hasTorch = python ? checkPythonPackage(python, 'torch') : false;
-    const gyroflow = findGyroflow();
 
     return {
         ok: true,
@@ -580,7 +560,6 @@ ipcMain.handle('detect-system', async () => {
         hasPythonDeps,
         hasScipy,
         hasTorch,
-        gyroflow,
     };
 });
 

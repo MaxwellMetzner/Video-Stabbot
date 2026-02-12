@@ -11,7 +11,7 @@ let elapsedTimer = null;
 let processingStart = null;
 
 // Views
-const VIEWS = ['loading', 'error', 'select', 'quality', 'custom', 'opencv', 'gyroflow', 'raft', 'processing', 'complete'];
+const VIEWS = ['loading', 'error', 'select', 'quality', 'custom', 'opencv', 'raft', 'processing', 'complete'];
 
 function showView(name) {
     VIEWS.forEach(v => {
@@ -73,7 +73,6 @@ function updateBadges(system) {
 
     // Show/hide advanced mode cards based on dependencies
     const opencvBtn = document.getElementById('btn-opencv');
-    const gyroflowBtn = document.getElementById('btn-gyroflow');
     const raftBtn = document.getElementById('btn-raft');
 
     // OpenCV requires scipy
@@ -89,72 +88,11 @@ function updateBadges(system) {
         opencvBtn.style.opacity = '1';
     }
 
-    // Gyroflow requires gyroflow-cli
-    if (system.gyroflow) {
-        gyroflowBtn.style.display = 'flex';
-    } else {
-        gyroflowBtn.style.display = 'none';
-    }
-
     // RAFT requires PyTorch
     if (system.hasTorch) {
         raftBtn.style.display = 'flex';
     } else {
         raftBtn.style.display = 'none';
-    }
-}
-
-// ============================================================
-// Gyroflow Processing
-// ============================================================
-
-async function handleGyroflow() {
-    const settings = {
-        smoothing: parseFloat(document.getElementById('val-gyroflow-smoothing').value),
-        fov: parseInt(document.getElementById('val-gyroflow-fov').value),
-        lensProfile: document.getElementById('opt-gyroflow-lens').value,
-        horizonLock: document.getElementById('opt-gyroflow-horizon').checked,
-        resolution: document.getElementById('opt-gyroflow-resolution').value,
-    };
-
-    const savePath = await window.stabbot.selectSavePath(filePath);
-    if (!savePath) return;
-
-    outputPath = savePath;
-    showView('processing');
-    resetProcessingView('Checking gyroscope data\u2026');
-    startElapsed();
-
-    window.stabbot.onProgress(data => updateProgress(data));
-
-    try {
-        const result = await window.stabbot.runPythonScript({
-            scriptName: 'gyroflow_integration.py',
-            args: [
-                '--input', filePath,
-                '--output', outputPath,
-                '--gyroflow', system.gyroflow,
-                '--ffprobe', system.ffprobe,
-                '--smoothing', settings.smoothing.toString(),
-                '--fov', settings.fov.toString(),
-                '--lens-profile', settings.lensProfile,
-                settings.horizonLock ? '--horizon-lock' : '',
-                '--resolution', settings.resolution,
-            ].filter(arg => arg !== ''),
-            duration: videoInfo.duration,
-        });
-
-        window.stabbot.removeProgressListener();
-        stopElapsed();
-        showComplete(result);
-    } catch (err) {
-        window.stabbot.removeProgressListener();
-        stopElapsed();
-        if (err.message === 'CANCELLED') {
-            showView('quality');
-        } else {
-            showProcessingError(err.message);
-        }
     }
 }
 
@@ -615,14 +553,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initSlider('opt-opencv-crop', 'val-opencv-crop');
     document.getElementById('btn-opencv-back').addEventListener('click', () => showView('quality'));
     document.getElementById('btn-opencv-start').addEventListener('click', handleOpenCV);
-
-    // Gyroflow settings
-    initSlider('opt-gyroflow-smoothing', 'val-gyroflow-smoothing');
-    initSlider('opt-gyroflow-fov', 'val-gyroflow-fov');
-    initToggle('opt-gyroflow-horizon', 'lbl-gyroflow-horizon');
-    document.getElementById('btn-gyroflow').addEventListener('click', () => showView('gyroflow'));
-    document.getElementById('btn-gyroflow-back').addEventListener('click', () => showView('quality'));
-    document.getElementById('btn-gyroflow-start').addEventListener('click', handleGyroflow);
 
     // RAFT settings
     initRadioGroup('opt-raft-model');
