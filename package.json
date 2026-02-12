@@ -1,0 +1,13 @@
+{
+  "name": "video-stabbot",
+  "version": "2.0.0",
+  "description": "Automatic Video Stabilization Tool",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^26.7.0"
+  }
+}

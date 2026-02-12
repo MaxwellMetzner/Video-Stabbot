@@ -1,0 +1,20 @@
+# Video Stabbot - Dependencies
+#
+# Core stabilization uses FFmpeg + libvidstab via the Electron UI.
+# The Python packages below are needed for the advanced modes
+# (OpenCV Feature Tracking and RAFT Dense Motion).
+#
+# System requirement: FFmpeg with libvidstab support
+#   Install from https://ffmpeg.org/download.html
+
+# Core dependencies
+opencv-python>=4.5.0
+numpy>=1.20.0
+
+# Enhanced trajectory smoothing (REQUIRED for OpenCV mode)
+scipy>=1.9.0
+
+# RAFT dense motion (OPTIONAL - large install ~2-4GB)
+# Uncomment to install:
+# torch>=1.12.0
+# torchvision>=0.13.0

@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+    <title>Video Stabbot</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header>
+            <div class="logo">
+                <span class="logo-icon">&#127916;</span>
+                <h1>Video Stabbot</h1>
+            </div>
+            <div id="encoder-badge" class="badge hidden">
+                <span class="badge-dot"></span>
+                <span id="encoder-name"></span>
+            </div>
+        </header>
+
+        <!-- Toast -->
+        <div id="toast" class="toast">
+            <span id="toast-message"></span>
+        </div>
+
+        <main>
+            <!-- Loading View -->
+            <section id="view-loading" class="view active">
+                <div class="view-content centered">
+                    <div class="spinner"></div>
+                    <p class="muted">Detecting system capabilities&hellip;</p>
+                </div>
+            </section>
+
+            <!-- Error View -->
+            <section id="view-error" class="view">
+                <div class="view-content centered">
+                    <div class="icon-circle icon-error">!</div>
+                    <h2>Setup Issue</h2>
+                    <p id="error-message" class="muted error-text"></p>
+                </div>
+            </section>
+
+            <!-- File Selection View -->
+            <section id="view-select" class="view">
+                <div class="view-content centered">
+                    <div id="drop-zone" tabindex="0" role="button" aria-label="Drop video file here or click to browse">
+                        <div class="drop-icon">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="3" width="20" height="18" rx="2"/>
+                                <path d="M8 3v18"/>
+                                <path d="M16 3v18"/>
+                                <path d="M2 9h20"/>
+                                <path d="M2 15h20"/>
+                            </svg>
+                        </div>
+                        <p class="drop-text">Drop video file here</p>
+                        <span class="drop-hint">or click to browse</span>
+                        <span class="drop-formats">MP4, AVI, MOV, MKV, WMV, WEBM</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quality Selection View -->
+            <section id="view-quality" class="view">
+                <div class="view-content">
+                    <div class="file-info">
+                        <div class="file-name" id="file-name"></div>
+                        <div class="file-meta" id="file-meta"></div>
+                    </div>
+
+                    <div class="quality-grid">
+                        <button class="quality-card card-hq" id="btn-hq">
+                            <span class="card-icon">&#10024;</span>
+                            <h3>High Quality</h3>
+                            <p class="card-desc">Best stabilization, detailed analysis</p>
+                            <ul class="card-details">
+                                <li>Deep motion analysis</li>
+                                <li>Bicubic interpolation</li>
+                                <li>Maximum quality encoding</li>
+                            </ul>
+                        </button>
+
+                        <button class="quality-card card-custom" id="btn-custom">
+                            <span class="card-icon">&#9881;</span>
+                            <h3>Custom</h3>
+                            <p class="card-desc">Full control over every parameter</p>
+                            <ul class="card-details">
+                                <li>Border &amp; crop modes</li>
+                                <li>Smoothing &amp; zoom</li>
+                                <li>All encoding options</li>
+                            </ul>
+                        </button>
+                    </div>
+
+                    <div class="section-divider"><span>Advanced Modes</span></div>
+
+                    <div class="advanced-grid">
+                        <button class="quality-card card-opencv" id="btn-opencv">
+                            <span class="card-icon">&#127919;</span>
+                            <h3>OpenCV Features</h3>
+                            <p class="card-desc">Feature detection + advanced smoothing</p>
+                            <ul class="card-details">
+                                <li>SIFT/ORB/AKAZE detection</li>
+                                <li>Savitzky-Golay smoothing</li>
+                                <li>Superior quality</li>
+                            </ul>
+                        </button>
+
+                        <button class="quality-card card-gyroflow" id="btn-gyroflow" style="display: none;">
+                            <span class="card-icon">&#127758;</span>
+                            <h3>Gyroflow</h3>
+                            <p class="card-desc">Gyroscope-based stabilization</p>
+                            <ul class="card-details">
+                                <li>Uses embedded gyro data</li>
+                                <li>GoPro / DJI / Insta360</li>
+                                <li>Best-in-class quality</li>
+                            </ul>
+                        </button>
+
+                        <button class="quality-card card-raft" id="btn-raft" style="display: none;">
+                            <span class="card-icon">&#129302;</span>
+                            <h3>RAFT Deep Learning</h3>
+                            <p class="card-desc">AI-powered dense optical flow</p>
+                            <ul class="card-details">
+                                <li>PyTorch neural network</li>
+                                <li>Dense motion estimation</li>
+                                <li>Ultimate quality (slow)</li>
+                            </ul>
+                        </button>
+                    </div>
+
+                    <button id="btn-back" class="btn-text">&larr; Choose a different file</button>
+                </div>
+            </section>
+
+            <!-- Custom Settings View -->
+            <section id="view-custom" class="view">
+                <div class="view-content custom-settings-content">
+                    <h2 class="custom-title">Custom Settings</h2>
+
+                    <div class="settings-scroll">
+                        <!-- Border Mode -->
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <label class="setting-label">Border Mode</label>
+                                <span class="setting-hint">What happens when stabilization reveals edges</span>
+                            </div>
+                            <div class="radio-group" id="opt-border">
+                                <label class="radio-option active" data-value="black">
+                                    <span class="radio-dot"></span>
+                                    <span class="radio-text">
+                                        <strong>Black Fill</strong>
+                                        <span>Gaps filled with black &mdash; clean, cinematic look</span>
+                                    </span>
+                                </label>
+                                <label class="radio-option" data-value="keep">
+                                    <span class="radio-dot"></span>
+                                    <span class="radio-text">
+                                        <strong>Keep Frame</strong>
+                                        <span>Original pixels persist at borders</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Smoothing -->
+                        <div class="setting-group" data-tooltip="Controls trajectory smoothing strength. Higher = smoother camera path but more crop. Lower = keeps more original motion. Range: 1-300">
+                            <div class="setting-header">
+                                <label class="setting-label">Smoothing</label>
+                                <input type="number" class="setting-value-input" id="val-smoothing" min="1" max="300" value="30">
+                            </div>
+                            <input type="range" class="slider" id="opt-smoothing" min="1" max="300" value="30">
+                            <div class="slider-labels"><span>Minimal (1)</span><span>Maximum (300)</span></div>
+                        </div>
+
+                        <!-- Shakiness -->
+                        <div class="setting-group" data-tooltip="How aggressively to detect camera shake. Higher values detect more shake. Range: 1-10">
+                            <div class="setting-header">
+                                <label class="setting-label">Shakiness Detection</label>
+                                <input type="number" class="setting-value-input" id="val-shakiness" min="1" max="10" value="8">
+                            </div>
+                            <input type="range" class="slider" id="opt-shakiness" min="1" max="10" value="8">
+                            <div class="slider-labels"><span>Subtle (1)</span><span>Aggressive (10)</span></div>
+                        </div>
+
+                        <!-- Accuracy -->
+                        <div class="setting-group" data-tooltip="Analysis precision for motion detection. Higher is slower but more accurate. Range: 1-15">
+                            <div class="setting-header">
+                                <label class="setting-label">Detection Accuracy</label>
+                                <input type="number" class="setting-value-input" id="val-accuracy" min="1" max="15" value="15">
+                            </div>
+                            <input type="range" class="slider" id="opt-accuracy" min="1" max="15" value="15">
+                            <div class="slider-labels"><span>Fast (1)</span><span>Precise (15)</span></div>
+                        </div>
+
+                        <!-- Auto Zoom -->
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <label class="setting-label">Auto Zoom</label>
+                                <span class="setting-hint">Automatically zoom to minimize black borders</span>
+                            </div>
+                            <div class="radio-group" id="opt-optzoom">
+                                <label class="radio-option" data-value="0">
+                                    <span class="radio-dot"></span>
+                                    <span class="radio-text">
+                                        <strong>Disabled</strong>
+                                        <span>No automatic zoom, use manual value only</span>
+                                    </span>
+                                </label>
+                                <label class="radio-option active" data-value="1">
+                                    <span class="radio-dot"></span>
+                                    <span class="radio-text">
+                                        <strong>Static</strong>
+                                        <span>Optimal fixed zoom for the whole video</span>
+                                    </span>
+                                </label>
+                                <label class="radio-option" data-value="2">
+                                    <span class="radio-dot"></span>
+                                    <span class="radio-text">
+                                        <strong>Adaptive</strong>
+                                        <span>Per-frame dynamic zoom (may cause pulsing)</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Zoom -->
+                        <div class="setting-group" data-tooltip="Additional zoom percentage. Positive values zoom in, negative values zoom out. Useful for fine-tuning. Range: -50% to +50%">
+                            <div class="setting-header">
+                                <label class="setting-label">Manual Zoom</label>
+                                <input type="number" class="setting-value-input" id="val-zoom" min="-50" max="50" value="0">
+                            </div>
+                            <input type="range" class="slider" id="opt-zoom" min="-50" max="50" value="0">
+                            <div class="slider-labels"><span>-50%</span><span>0%</span><span>+50%</span></div>
+                        </div>
+
+                        <!-- Interpolation -->
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <label class="setting-label">Interpolation</label>
+                            </div>
+                            <span class="setting-hint">Pixel interpolation quality when transforming frames.</span>
+                            <select class="select-input" id="opt-interpol">
+                                <option value="bilinear">Bilinear &mdash; Good balance</option>
+                                <option value="bicubic" selected>Bicubic &mdash; Highest quality</option>
+                                <option value="linear">Linear &mdash; Fastest</option>
+                            </select>
+                        </div>
+
+                        <!-- Tripod Mode -->
+                        <div class="setting-group" data-tooltip="Lock stabilization to the first frame. Best for fixed-camera shots with slight vibration or bumps.">
+                            <div class="setting-header">
+                                <label class="setting-label">Tripod Mode</label>
+                            </div>
+                            <div class="toggle-row">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="opt-tripod">
+                                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                                </label>
+                                <span class="toggle-label" id="lbl-tripod">Off</span>
+                            </div>
+                        </div>
+
+                        <!-- Relative Transforms -->
+                        <div class="setting-group" data-tooltip="Use relative instead of absolute transforms. Can improve results for panning shots.">
+                            <div class="setting-header">
+                                <label class="setting-label">Relative Transforms</label>
+                            </div>
+                            <div class="toggle-row">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="opt-relative">
+                                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                                </label>
+                                <span class="toggle-label" id="lbl-relative">Off</span>
+                            </div>
+                        </div>
+
+                        <!-- Zoom Speed -->
+                        <div class="setting-group" data-tooltip="Speed of zoom transitions when using adaptive auto-zoom. Only applies if Auto Zoom is set to Adaptive. Range: 0-5">
+                            <div class="setting-header">
+                                <label class="setting-label">Zoom Speed</label>
+                                <input type="number" class="setting-value-input" id="val-zoomspeed" min="0" max="5" value="0.25" step="0.05">
+                            </div>
+                            <input type="range" class="slider" id="opt-zoomspeed" min="0" max="5" value="0.25" step="0.05">
+                            <div class="slider-labels"><span>Slow (0)</span><span>Fast (5)</span></div>
+                        </div>
+
+                        <!-- Max Shift -->
+                        <div class="setting-group" data-tooltip="Maximum translation shift in pixels per frame. Prevents extreme corrections. 0 = unlimited. Range: 0-500px">
+                            <div class="setting-header">
+                                <label class="setting-label">Max Shift</label>
+                                <input type="number" class="setting-value-input" id="val-maxshift" min="0" max="500" value="0">
+                            </div>
+                            <input type="range" class="slider" id="opt-maxshift" min="0" max="500" value="0">
+                            <div class="slider-labels"><span>Unlimited (0)</span><span>500 px</span></div>
+                        </div>
+
+                        <!-- Max Angle -->
+                        <div class="setting-group" data-tooltip="Maximum rotation correction in degrees. Prevents warping artifacts on high rotation. 0 = unlimited. Range: 0-45°">
+                            <div class="setting-header">
+                                <label class="setting-label">Max Rotation</label>
+                                <input type="number" class="setting-value-input" id="val-maxangle" min="0" max="45" value="0" step="1">
+                            </div>
+                            <input type="range" class="slider" id="opt-maxangle" min="0" max="45" value="0" step="1">
+                            <div class="slider-labels"><span>Unlimited (0)</span><span>45&deg;</span></div>
+                        </div>
+
+                        <!-- Step Size -->
+                        <div class="setting-group" data-tooltip="Region size in pixels for motion detection. Smaller = more detail but slower. Larger = faster but less precise. Range: 1-32px">
+                            <div class="setting-header">
+                                <label class="setting-label">Step Size</label>
+                                <input type="number" class="setting-value-input" id="val-stepsize" min="1" max="32" value="6">
+                            </div>
+                            <input type="range" class="slider" id="opt-stepsize" min="1" max="32" value="6">
+                            <div class="slider-labels"><span>1 px</span><span>32 px</span></div>
+                        </div>
+
+                        <!-- Min Contrast -->
+                        <div class="setting-group" data-tooltip="Minimum contrast threshold for motion detection. Regions below this are ignored. Lower values detect more features. Range: 0.0-1.0">
+                            <div class="setting-header">
+                                <label class="setting-label">Min Contrast</label>
+                                <input type="number" class="setting-value-input" id="val-mincontrast" min="0" max="1" value="0.25" step="0.01">
+                            </div>
+                            <input type="range" class="slider" id="opt-mincontrast" min="0" max="1" value="0.25" step="0.01">
+                            <div class="slider-labels"><span>0.0</span><span>1.0</span></div>
+                        </div>
+
+                        <!-- Encoding Quality -->
+                        <div class="setting-group">
+                            <div class="setting-header">
+                                <label class="setting-label">Encoding Quality</label>
+                            </div>
+                            <span class="setting-hint">Trade off between file size and visual quality.</span>
+                            <select class="select-input" id="opt-encoding">
+                                <option value="high">High &mdash; Larger file, best quality</option>
+                                <option value="balanced" selected>Balanced &mdash; Recommended</option>
+                                <option value="compressed">Compressed &mdash; Smallest file</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="custom-actions">
+                        <button id="btn-custom-back" class="btn-text">&larr; Back to presets</button>
+                        <button id="btn-custom-start" class="btn-primary">Stabilize Video</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- OpenCV Feature Tracking Settings View -->
+            <section id="view-opencv" class="view">
+                <div class="view-content custom-settings-content">
+                    <h2 class="custom-title">OpenCV Feature Tracking Settings</h2>
+
+                    <div class="settings-scroll">
+                        <!-- Feature Detector -->
+                        <div class="setting-group" data-tooltip="SIFT: Best quality, slower. ORB: Fast, good quality. AKAZE: Balanced speed and quality.">
+                            <div class="setting-header">
+                                <label class="setting-label">Feature Detector</label>
+                            </div>
+                            <div class="radio-group" id="opt-opencv-detector">
+                                <label class="radio-option active" data-value="sift">
+                                    <span class="radio-dot"></span>
+                                    <span class="radio-text">
+                                        <strong>SIFT</strong>
+                                        <span>Scale-Invariant - Best quality, slower</span>
+                                    </span>
+                                </label>
+                                <label class="radio-option" data-value="orb">
+                                    <span class="radio-dot"></span>
+                                    <span class="radio-text">
+                                        <strong>ORB</strong>
+                                        <span>Oriented FAST - Fast processing, good quality</span>
+                                    </span>
+                                </label>
+                                <label class="radio-option" data-value="akaze">
+                                    <span class="radio-dot"></span>
+                                    <span class="radio-text">
+                                        <strong>AKAZE</strong>
+                                        <span>Accelerated KAZE - Balanced speed/quality</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Max Features -->
+                        <div class="setting-group" data-tooltip="Maximum features to detect per frame. More features = better tracking but slower. Range: 500-5000">
+                            <div class="setting-header">
+                                <label class="setting-label">Max Features</label>
+                                <input type="number" class="setting-value-input" id="val-opencv-features" min="500" max="5000" value="2000" step="100">
+                            </div>
+                            <input type="range" class="slider" id="opt-opencv-features" min="500" max="5000" value="2000" step="100">
+                            <div class="slider-labels"><span>500</span><span>5000</span></div>
+                        </div>
+
+                        <!-- Transform Type -->
+                        <div class="setting-group" data-tooltip="Affine: Rotation + Translation + Scale. Homography: Also includes perspective distortion.">
+                            <div class="setting-header">
+                                <label class="setting-label">Transform Type</label>
+                            </div>
+                            <div class="radio-group" id="opt-opencv-transform">
+                                <label class="radio-option active" data-value="affine">
+                                    <span class="radio-dot"></span>
+                                    <span class="radio-text">
+                                        <strong>Affine</strong>
+                                        <span>Rotation + Translation (recommended)</span>
+                                    </span>
+                                </label>
+                                <label class="radio-option" data-value="homography">
+                                    <span class="radio-dot"></span>
+                                    <span class="radio-text">
+                                        <strong>Homography</strong>
+                                        <span>Includes perspective transform</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Smoothing Method -->
+                        <div class="setting-group" data-tooltip="Algorithm for trajectory smoothing. Savitzky-Golay preserves motion peaks while smoothing jitter.">
+                            <div class="setting-header">
+                                <label class="setting-label">Smoothing Method</label>
+                            </div>
+                            <select class="select-input" id="opt-opencv-smoothing-method">
+                                <option value="moving_average">Moving Average</option>
+                                <option value="savgol" selected>Savitzky-Golay (Recommended)</option>
+                                <option value="gaussian">Gaussian Blur</option>
+                                <option value="spline">Cubic Spline</option>
+                            </select>
+                        </div>
+
+                        <!-- Smoothing Strength -->
+                        <div class="setting-group" data-tooltip="Smoothing strength. Higher values = smoother camera path but may remove intentional motion. Range: 10-200">
+                            <div class="setting-header">
+                                <label class="setting-label">Smoothing Strength</label>
+                                <input type="number" class="setting-value-input" id="val-opencv-smoothing" min="10" max="200" value="50">
+                            </div>
+                            <input type="range" class="slider" id="opt-opencv-smoothing" min="10" max="200" value="50">
+                            <div class="slider-labels"><span>Subtle (10)</span><span>Maximum (200)</span></div>
+                        </div>
+
+                        <!-- Crop Percentage -->
+                        <div class="setting-group" data-tooltip="Crop borders to remove black edges from stabilization. Higher values crop more. Range: 0-20%">
+                            <div class="setting-header">
+                                <label class="setting-label">Crop Percentage</label>
+                                <input type="number" class="setting-value-input" id="val-opencv-crop" min="0" max="20" value="10" step="1">
+                            </div>
+                            <input type="range" class="slider" id="opt-opencv-crop" min="0" max="20" value="10" step="1">
+                            <div class="slider-labels"><span>0%</span><span>20%</span></div>
+                        </div>
+
+                        <!-- Output Resolution -->
+                        <div class="setting-group" data-tooltip="Resolution of the output video. Source maintains original resolution.">
+                            <div class="setting-header">
+                                <label class="setting-label">Output Resolution</label>
+                            </div>
+                            <select class="select-input" id="opt-opencv-resolution">
+                                <option value="source" selected>Source Resolution</option>
+                                <option value="1080p">1920 × 1080</option>
+                                <option value="720p">1280 × 720</option>
+                                <option value="480p">854 × 480</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="custom-actions">
+                        <button id="btn-opencv-back" class="btn-text">&larr; Back to modes</button>
+                        <button id="btn-opencv-start" class="btn-primary">Stabilize Video</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Gyroflow Settings View -->
+            <section id="view-gyroflow" class="view">
+                <div class="view-content custom-settings-content">
+                    <h2 class="custom-title">Gyroflow Settings</h2>
+
+                    <div class="settings-scroll">
+                        <!-- Smoothing Strength -->
+                        <div class="setting-group" data-tooltip="Smoothing strength for gyro-based stabilization. Higher = smoother camera path. Range: 0.0-1.0">
+                            <div class="setting-header">
+                                <label class="setting-label">Smoothing Strength</label>
+                                <input type="number" class="setting-value-input" id="val-gyroflow-smoothing" min="0" max="1" value="0.5" step="0.05">
+                            </div>
+                            <input type="range" class="slider" id="opt-gyroflow-smoothing" min="0" max="1" value="0.5" step="0.05">
+                            <div class="slider-labels"><span>Minimal (0.0)</span><span>Maximum (1.0)</span></div>
+                        </div>
+
+                        <!-- FOV Adjustment -->
+                        <div class="setting-group" data-tooltip="Field of view adjustment. Positive values zoom in, negative values zoom out. Range: -10% to +10%">
+                            <div class="setting-header">
+                                <label class="setting-label">FOV Adjustment</label>
+                                <input type="number" class="setting-value-input" id="val-gyroflow-fov" min="-10" max="10" value="0" step="1">
+                            </div>
+                            <input type="range" class="slider" id="opt-gyroflow-fov" min="-10" max="10" value="0" step="1">
+                            <div class="slider-labels"><span>-10%</span><span>0%</span><span>+10%</span></div>
+                        </div>
+
+                        <!-- Horizon Lock -->
+                        <div class="setting-group" data-tooltip="Lock the horizon to keep it level. Prevents rotation wobble.">
+                            <div class="setting-header">
+                                <label class="setting-label">Horizon Lock</label>
+                            </div>
+                            <div class="toggle-row">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="opt-gyroflow-horizon">
+                                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                                </label>
+                                <span class="toggle-label" id="lbl-gyroflow-horizon">Off</span>
+                            </div>
+                        </div>
+
+                        <!-- Lens Profile -->
+                        <div class="setting-group" data-tooltip="Lens correction profile. Auto-detect works for most cameras.">
+                            <div class="setting-header">
+                                <label class="setting-label">Lens Profile</label>
+                            </div>
+                            <select class="select-input" id="opt-gyroflow-lens">
+                                <option value="auto" selected>Auto-detect</option>
+                                <option value="gopro_hero11">GoPro Hero 11</option>
+                                <option value="gopro_hero10">GoPro Hero 10</option>
+                                <option value="gopro_hero9">GoPro Hero 9</option>
+                                <option value="gopro_hero8">GoPro Hero 8</option>
+                                <option value="dji_osmo">DJI Osmo Action</option>
+                                <option value="insta360">Insta360 Generic</option>
+                            </select>
+                        </div>
+
+                        <!-- Output Resolution -->
+                        <div class="setting-group" data-tooltip="Resolution of the output video. Source maintains original resolution.">
+                            <div class="setting-header">
+                                <label class="setting-label">Output Resolution</label>
+                            </div>
+                            <select class="select-input" id="opt-gyroflow-resolution">
+                                <option value="source" selected>Source Resolution</option>
+                                <option value="1080p">1920 × 1080</option>
+                                <option value="720p">1280 × 720</option>
+                                <option value="480p">854 × 480</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="custom-actions">
+                        <button id="btn-gyroflow-back" class="btn-text">&larr; Back to modes</button>
+                        <button id="btn-gyroflow-start" class="btn-primary">Stabilize Video</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RAFT Settings View -->
+            <section id="view-raft" class="view">
+                <div class="view-content custom-settings-content">
+                    <h2 class="custom-title">RAFT Deep Learning Settings</h2>
+
+                    <div class="settings-scroll">
+                        <!-- RAFT Model -->
+                        <div class="setting-group" data-tooltip="RAFT model variant. Sintel is optimized for natural videos.">
+                            <div class="setting-header">
+                                <label class="setting-label">RAFT Model</label>
+                            </div>
+                            <div class="radio-group" data-group="opt-raft-model">
+                                <label class="radio-option">
+                                    <input type="radio" name="opt-raft-model" value="raft-sintel" checked>
+                                    <span class="radio-label">Sintel (Recommended)</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="opt-raft-model" value="raft-things">
+                                    <span class="radio-label">Things (General)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Max Iterations -->
+                        <div class="setting-group" data-tooltip="Number of RAFT refinement iterations. Higher = better accuracy but slower. Range: 6-20">
+                            <div class="setting-header">
+                                <label class="setting-label">Refinement Iterations</label>
+                                <input type="number" class="setting-value-input" id="val-raft-iterations" min="6" max="20" value="12" step="1">
+                            </div>
+                            <input type="range" class="slider" id="opt-raft-iterations" min="6" max="20" value="12" step="1">
+                            <div class="slider-labels"><span>Fast (6)</span><span>Accurate (20)</span></div>
+                        </div>
+
+                        <!-- Smoothing Method -->
+                        <div class="setting-group" data-tooltip="Trajectory smoothing algorithm. Savitzky-Golay is recommended for most videos.">
+                            <div class="setting-header">
+                                <label class="setting-label">Smoothing Method</label>
+                            </div>
+                            <select class="select-input" id="opt-raft-smoothing-method">
+                                <option value="savitzky_golay" selected>Savitzky-Golay Filter</option>
+                                <option value="gaussian">Gaussian Smoothing</option>
+                                <option value="moving_average">Moving Average</option>
+                                <option value="spline">Cubic Spline</option>
+                            </select>
+                        </div>
+
+                        <!-- Smoothing Strength -->
+                        <div class="setting-group" data-tooltip="Trajectory smoothing strength. Higher = smoother but less responsive to real motion. Range: 10-100">
+                            <div class="setting-header">
+                                <label class="setting-label">Smoothing Strength</label>
+                                <input type="number" class="setting-value-input" id="val-raft-smoothing" min="10" max="100" value="30" step="5">
+                            </div>
+                            <input type="range" class="slider" id="opt-raft-smoothing" min="10" max="100" value="30" step="5">
+                            <div class="slider-labels"><span>Minimal (10)</span><span>Maximum (100)</span></div>
+                        </div>
+
+                        <!-- Crop Percentage -->
+                        <div class="setting-group" data-tooltip="Percentage of borders to crop after stabilization. Removes black borders. Range: 0-30%">
+                            <div class="setting-header">
+                                <label class="setting-label">Border Crop</label>
+                                <input type="number" class="setting-value-input" id="val-raft-crop" min="0" max="30" value="10" step="1">
+                            </div>
+                            <input type="range" class="slider" id="opt-raft-crop" min="0" max="30" value="10" step="1">
+                            <div class="slider-labels"><span>None (0%)</span><span>Maximum (30%)</span></div>
+                        </div>
+
+                        <!-- Output Resolution -->
+                        <div class="setting-group" data-tooltip="Resolution of the output video. Source maintains original resolution.">
+                            <div class="setting-header">
+                                <label class="setting-label">Output Resolution</label>
+                            </div>
+                            <select class="select-input" id="opt-raft-resolution">
+                                <option value="source" selected>Source Resolution</option>
+                                <option value="1080p">1920 × 1080</option>
+                                <option value="720p">1280 × 720</option>
+                                <option value="480p">854 × 480</option>
+                            </select>
+                        </div>
+
+                        <!-- Performance Warning -->
+                        <div class="info-box">
+                            <strong>⚠️ Performance Note:</strong> RAFT uses deep learning and requires significant computing power. Processing may be slow on CPU. GPU (CUDA) highly recommended.
+                        </div>
+                    </div>
+
+                    <div class="custom-actions">
+                        <button id="btn-raft-back" class="btn-text">&larr; Back to modes</button>
+                        <button id="btn-raft-start" class="btn-primary">Stabilize Video</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Processing View -->
+            <section id="view-processing" class="view">
+                <div class="view-content centered" id="processing-content">
+                    <div class="phase-label" id="phase-label">Analyzing motion&hellip;</div>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="progress-bar"></div>
+                    </div>
+                    <div class="progress-stats">
+                        <span id="progress-percent">0%</span>
+                        <span id="progress-elapsed">0:00</span>
+                    </div>
+                    <button id="btn-cancel" class="btn-secondary">Cancel</button>
+                </div>
+                <div class="view-content centered hidden" id="processing-error">
+                    <div class="icon-circle icon-error">!</div>
+                    <h2>Processing Failed</h2>
+                    <pre id="error-detail" class="error-log"></pre>
+                    <div class="error-actions">
+                        <button id="btn-copy-error" class="btn-secondary btn-small">Copy Error</button>
+                        <button id="btn-error-back" class="btn-secondary">Go Back</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Complete View -->
+            <section id="view-complete" class="view">
+                <div class="view-content centered">
+                    <div class="icon-circle icon-success">&#10003;</div>
+                    <h2>Stabilization Complete</h2>
+                    <div class="results-grid">
+                        <div class="result-row">
+                            <span class="result-label">Detection</span>
+                            <span class="result-value" id="stat-detect"></span>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-label">Stabilization</span>
+                            <span class="result-value" id="stat-transform"></span>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-label">Total time</span>
+                            <span class="result-value" id="stat-total"></span>
+                        </div>
+                        <div class="result-divider"></div>
+                        <div class="result-row">
+                            <span class="result-label">Original</span>
+                            <span class="result-value" id="stat-original-size"></span>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-label">Stabilized</span>
+                            <span class="result-value" id="stat-output-size"></span>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button id="btn-show-folder" class="btn-secondary">Show in Folder</button>
+                        <button id="btn-another" class="btn-primary">Process Another</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="renderer.js"></script>
+</body>
+</html>
