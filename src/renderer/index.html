@@ -109,18 +109,7 @@
                             </ul>
                         </button>
 
-                        <button class="quality-card card-gyroflow" id="btn-gyroflow" style="display: none;">
-                            <span class="card-icon">&#127758;</span>
-                            <h3>Gyroflow</h3>
-                            <p class="card-desc">Gyroscope-based stabilization</p>
-                            <ul class="card-details">
-                                <li>Uses embedded gyro data</li>
-                                <li>GoPro / DJI / Insta360</li>
-                                <li>Best-in-class quality</li>
-                            </ul>
-                        </button>
-
-                        <button class="quality-card card-raft" id="btn-raft" style="display: none;">
+                        <button class="quality-card card-raft" id="btn-raft">
                             <span class="card-icon">&#129302;</span>
                             <h3>RAFT Deep Learning</h3>
                             <p class="card-desc">AI-powered dense optical flow</p>
@@ -472,83 +461,6 @@
                 </div>
             </section>
 
-            <!-- Gyroflow Settings View -->
-            <section id="view-gyroflow" class="view">
-                <div class="view-content custom-settings-content">
-                    <h2 class="custom-title">Gyroflow Settings</h2>
-
-                    <div class="settings-scroll">
-                        <!-- Smoothing Strength -->
-                        <div class="setting-group" data-tooltip="Smoothing strength for gyro-based stabilization. Higher = smoother camera path. Range: 0.0-1.0">
-                            <div class="setting-header">
-                                <label class="setting-label">Smoothing Strength</label>
-                                <input type="number" class="setting-value-input" id="val-gyroflow-smoothing" min="0" max="1" value="0.5" step="0.05">
-                            </div>
-                            <input type="range" class="slider" id="opt-gyroflow-smoothing" min="0" max="1" value="0.5" step="0.05">
-                            <div class="slider-labels"><span>Minimal (0.0)</span><span>Maximum (1.0)</span></div>
-                        </div>
-
-                        <!-- FOV Adjustment -->
-                        <div class="setting-group" data-tooltip="Field of view adjustment. Positive values zoom in, negative values zoom out. Range: -10% to +10%">
-                            <div class="setting-header">
-                                <label class="setting-label">FOV Adjustment</label>
-                                <input type="number" class="setting-value-input" id="val-gyroflow-fov" min="-10" max="10" value="0" step="1">
-                            </div>
-                            <input type="range" class="slider" id="opt-gyroflow-fov" min="-10" max="10" value="0" step="1">
-                            <div class="slider-labels"><span>-10%</span><span>0%</span><span>+10%</span></div>
-                        </div>
-
-                        <!-- Horizon Lock -->
-                        <div class="setting-group" data-tooltip="Lock the horizon to keep it level. Prevents rotation wobble.">
-                            <div class="setting-header">
-                                <label class="setting-label">Horizon Lock</label>
-                            </div>
-                            <div class="toggle-row">
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="opt-gyroflow-horizon">
-                                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                                </label>
-                                <span class="toggle-label" id="lbl-gyroflow-horizon">Off</span>
-                            </div>
-                        </div>
-
-                        <!-- Lens Profile -->
-                        <div class="setting-group" data-tooltip="Lens correction profile. Auto-detect works for most cameras.">
-                            <div class="setting-header">
-                                <label class="setting-label">Lens Profile</label>
-                            </div>
-                            <select class="select-input" id="opt-gyroflow-lens">
-                                <option value="auto" selected>Auto-detect</option>
-                                <option value="gopro_hero11">GoPro Hero 11</option>
-                                <option value="gopro_hero10">GoPro Hero 10</option>
-                                <option value="gopro_hero9">GoPro Hero 9</option>
-                                <option value="gopro_hero8">GoPro Hero 8</option>
-                                <option value="dji_osmo">DJI Osmo Action</option>
-                                <option value="insta360">Insta360 Generic</option>
-                            </select>
-                        </div>
-
-                        <!-- Output Resolution -->
-                        <div class="setting-group" data-tooltip="Resolution of the output video. Source maintains original resolution.">
-                            <div class="setting-header">
-                                <label class="setting-label">Output Resolution</label>
-                            </div>
-                            <select class="select-input" id="opt-gyroflow-resolution">
-                                <option value="source" selected>Source Resolution</option>
-                                <option value="1080p">1920 × 1080</option>
-                                <option value="720p">1280 × 720</option>
-                                <option value="480p">854 × 480</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="custom-actions">
-                        <button id="btn-gyroflow-back" class="btn-text">&larr; Back to modes</button>
-                        <button id="btn-gyroflow-start" class="btn-primary">Stabilize Video</button>
-                    </div>
-                </div>
-            </section>
-
             <!-- RAFT Settings View -->
             <section id="view-raft" class="view">
                 <div class="view-content custom-settings-content">
@@ -560,14 +472,20 @@
                             <div class="setting-header">
                                 <label class="setting-label">RAFT Model</label>
                             </div>
-                            <div class="radio-group" data-group="opt-raft-model">
-                                <label class="radio-option">
-                                    <input type="radio" name="opt-raft-model" value="raft-sintel" checked>
-                                    <span class="radio-label">Sintel (Recommended)</span>
+                            <div class="radio-group" id="opt-raft-model">
+                                <label class="radio-option active" data-value="raft-sintel">
+                                    <span class="radio-dot"></span>
+                                    <span class="radio-text">
+                                        <strong>Sintel</strong>
+                                        <span>Optimized for natural videos (recommended)</span>
+                                    </span>
                                 </label>
-                                <label class="radio-option">
-                                    <input type="radio" name="opt-raft-model" value="raft-things">
-                                    <span class="radio-label">Things (General)</span>
+                                <label class="radio-option" data-value="raft-things">
+                                    <span class="radio-dot"></span>
+                                    <span class="radio-text">
+                                        <strong>Things</strong>
+                                        <span>General purpose model</span>
+                                    </span>
                                 </label>
                             </div>
                         </div>
@@ -588,7 +506,7 @@
                                 <label class="setting-label">Smoothing Method</label>
                             </div>
                             <select class="select-input" id="opt-raft-smoothing-method">
-                                <option value="savitzky_golay" selected>Savitzky-Golay Filter</option>
+                                <option value="savgol" selected>Savitzky-Golay Filter</option>
                                 <option value="gaussian">Gaussian Smoothing</option>
                                 <option value="moving_average">Moving Average</option>
                                 <option value="spline">Cubic Spline</option>

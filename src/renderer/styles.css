@@ -27,8 +27,6 @@
     --custom-glow: rgba(245, 158, 11, 0.15);
     --opencv-accent: #14b8a6;
     --opencv-glow: rgba(20, 184, 166, 0.15);
-    --gyroflow-accent: #06b6d4;
-    --gyroflow-glow: rgba(6, 182, 212, 0.15);
     --raft-accent: #8b5cf6;
     --raft-glow: rgba(139, 92, 246, 0.15);
     --subject-accent: #14b8a6;
@@ -429,12 +427,6 @@ h2 {
 .quality-card.card-opencv:focus-visible {
     border-color: var(--opencv-accent);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--opencv-accent), 0 0 24px var(--opencv-glow);
-}
-
-.quality-card.card-gyroflow:hover,
-.quality-card.card-gyroflow:focus-visible {
-    border-color: var(--gyroflow-accent);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--gyroflow-accent), 0 0 24px var(--gyroflow-glow);
 }
 
 .quality-card.card-raft:hover,

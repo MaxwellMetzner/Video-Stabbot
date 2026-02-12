@@ -161,26 +161,6 @@ function findPython() {
     return null;
 }
 
-function findGyroflow() {
-    // Try PATH first
-    let gyro = findExecutable('gyroflow-cli');
-    if (gyro) return gyro;
-
-    // Try platform-specific default locations
-    const commonPaths = {
-        win32: 'C:\\Program Files\\Gyroflow\\gyroflow-cli.exe',
-        darwin: '/Applications/Gyroflow.app/Contents/MacOS/gyroflow-cli',
-        linux: '/usr/bin/gyroflow-cli',
-    };
-
-    const platformPath = commonPaths[process.platform];
-    if (platformPath && fs.existsSync(platformPath)) {
-        return platformPath;
-    }
-
-    return null;
-}
-
 function checkPythonDeps(pythonPath) {
     try {
         execFileSync(pythonPath, ['-c', 'import cv2; import numpy'], {
@@ -569,7 +549,15 @@ ipcMain.handle('detect-system', async () => {
     const hasPythonDeps = python ? checkPythonDeps(python) : false;
     const hasScipy = python ? checkPythonPackage(python, 'scipy') : false;
     const hasTorch = python ? checkPythonPackage(python, 'torch') : false;
-    const gyroflow = findGyroflow();
+    const hasTorchvision = python ? checkPythonPackage(python, 'torchvision') : false;
+
+    // Build detailed RAFT status
+    const raftMissing = [];
+    if (!python) raftMissing.push('Python 3.8+');
+    if (python && !hasPythonDeps) raftMissing.push('opencv-python, numpy');
+    if (python && !hasScipy) raftMissing.push('scipy');
+    if (python && !hasTorch) raftMissing.push('torch');
+    if (python && !hasTorchvision) raftMissing.push('torchvision');
 
     return {
         ok: true,
@@ -580,7 +568,9 @@ ipcMain.handle('detect-system', async () => {
         hasPythonDeps,
         hasScipy,
         hasTorch,
-        gyroflow,
+        hasTorchvision,
+        raftReady: raftMissing.length === 0,
+        raftMissing,
     };
 });
 

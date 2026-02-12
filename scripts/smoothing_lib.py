@@ -9,6 +9,8 @@ Provides multiple smoothing methods for camera trajectory stabilization:
 - Spline: Very smooth cubic spline interpolation
 """
 
+import inspect
+
 import numpy as np
 from scipy.signal import savgol_filter
 from scipy.ndimage import gaussian_filter1d
@@ -175,7 +177,13 @@ def apply_smoothing(trajectory, method='moving_average', **params):
         raise ValueError(f"Unknown smoothing method: {method}. "
                         f"Available: {list(SMOOTHING_METHODS.keys())}")
 
-    return SMOOTHING_METHODS[method](trajectory, **params)
+    # Filter params to only those accepted by the chosen method
+    func = SMOOTHING_METHODS[method]
+    sig = inspect.signature(func)
+    accepted = set(sig.parameters.keys()) - {'trajectory'}
+    filtered_params = {k: v for k, v in params.items() if k in accepted}
+
+    return func(trajectory, **filtered_params)
 
 
 if __name__ == '__main__':

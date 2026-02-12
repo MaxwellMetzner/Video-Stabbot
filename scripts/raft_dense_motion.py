@@ -63,7 +63,7 @@ def load_raft_model(model_name='raft-sintel'):
         return None, None
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    emit('loading', 5, message=f"Loading RAFT model on {device}")
+    emit('loading', 1, message=f"Loading RAFT model on {device}")
 
     try:
         if model_name == 'raft-sintel':
@@ -76,7 +76,7 @@ def load_raft_model(model_name='raft-sintel'):
             model = flow_models.raft_large(weights=weights)
 
         model = model.to(device).eval()
-        emit('loading', 15, message="RAFT model loaded")
+        emit('loading', 4, message="RAFT model loaded")
         return model, device
 
     except Exception as e:
@@ -93,20 +93,35 @@ def preprocess_frame(frame, device):
         device: torch device
 
     Returns:
-        tensor: Preprocessed frame tensor [1, 3, H, W]
+        tensor: Preprocessed frame tensor [1, 3, H, W] in [-1, 1]
     """
     import torch
 
     # Convert BGR to RGB
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-    # Convert to float [0, 1] and then to tensor
-    frame_tensor = torch.from_numpy(frame_rgb).permute(2, 0, 1).float()
+    # Convert to float tensor [1, 3, H, W]
+    frame_tensor = torch.from_numpy(frame_rgb).permute(2, 0, 1).float().unsqueeze(0)
 
-    # Normalize to [0, 255] (RAFT expects this range)
-    frame_tensor = frame_tensor.unsqueeze(0).to(device)
+    # Normalize from [0, 255] to [-1, 1]  (required by torchvision RAFT)
+    frame_tensor = frame_tensor / 255.0            # [0, 1]
+    frame_tensor = (frame_tensor - 0.5) / 0.5      # [-1, 1]
 
-    return frame_tensor
+    return frame_tensor.to(device)
+
+
+def pad_to_divisible(tensor, divisor=8):
+    """
+    Pad a [1, C, H, W] tensor so H and W are divisible by `divisor`.
+    Returns (padded_tensor, (pad_h, pad_w)).
+    """
+    import torch.nn.functional as F
+    _, _, h, w = tensor.shape
+    pad_h = (divisor - h % divisor) % divisor
+    pad_w = (divisor - w % divisor) % divisor
+    if pad_h > 0 or pad_w > 0:
+        tensor = F.pad(tensor, (0, pad_w, 0, pad_h), mode='replicate')
+    return tensor, (pad_h, pad_w)
 
 
 def estimate_flow(model, device, frame1, frame2, max_iterations=12):
@@ -129,6 +144,11 @@ def estimate_flow(model, device, frame1, frame2, max_iterations=12):
     img1 = preprocess_frame(frame1, device)
     img2 = preprocess_frame(frame2, device)
 
+    # RAFT requires dimensions divisible by 8 — pad if necessary
+    orig_h, orig_w = img1.shape[2], img1.shape[3]
+    img1, (pad_h, pad_w) = pad_to_divisible(img1, 8)
+    img2, _ = pad_to_divisible(img2, 8)
+
     # Estimate flow
     with torch.no_grad():
         # RAFT returns a list of flow predictions (refinements)
@@ -136,6 +156,9 @@ def estimate_flow(model, device, frame1, frame2, max_iterations=12):
 
         # Take the final (most refined) prediction
         flow = flow_predictions[-1]
+
+    # Crop padding back to original dimensions
+    flow = flow[:, :, :orig_h, :orig_w]
 
     # Convert to numpy [H, W, 2]
     flow_np = flow[0].permute(1, 2, 0).cpu().numpy()
@@ -145,9 +168,11 @@ def estimate_flow(model, device, frame1, frame2, max_iterations=12):
 
 def flow_to_transform(flow):
     """
-    Convert dense optical flow to affine transform parameters
+    Convert dense optical flow to affine transform [dx, dy, da].
 
-    Uses median flow vectors as a robust estimate of camera motion
+    Builds point correspondences from the flow field and uses
+    cv2.estimateAffinePartial2D with RANSAC — the exact same method
+    the working OpenCV feature-tracking script uses.
 
     Args:
         flow: Dense optical flow [H, W, 2]
@@ -155,39 +180,32 @@ def flow_to_transform(flow):
     Returns:
         transform: [dx, dy, da] - translation x, y, and rotation angle
     """
-    # Use median flow as robust camera motion estimate
-    # (median is less affected by moving objects)
-
-    dx = np.median(flow[:, :, 0])
-    dy = np.median(flow[:, :, 1])
-
-    # Estimate rotation from flow field using corner points
-    # (corners are more informative for rotation)
     h, w = flow.shape[:2]
 
-    # Sample corner regions
-    corner_size = min(h, w) // 8
-    corners = [
-        flow[:corner_size, :corner_size],  # top-left
-        flow[:corner_size, -corner_size:],  # top-right
-        flow[-corner_size:, :corner_size],  # bottom-left
-        flow[-corner_size:, -corner_size:],  # bottom-right
-    ]
+    # Subsample the flow field into point correspondences
+    step = max(1, min(h, w) // 80)
+    ys, xs = np.mgrid[0:h:step, 0:w:step]
 
-    # Compute rotation from corner flow differences
-    # Simplified approach: use median flow differences
-    angles = []
-    for corner in corners:
-        if corner.size > 0:
-            flow_x = np.median(corner[:, :, 0])
-            flow_y = np.median(corner[:, :, 1])
-            angle = np.arctan2(flow_y, flow_x)
-            angles.append(angle)
+    pts1 = np.column_stack([xs.ravel(), ys.ravel()]).astype(np.float32)
+    flow_sub = flow[0:h:step, 0:w:step]
+    pts2 = pts1 + flow_sub.reshape(-1, 2).astype(np.float32)
 
-    da = np.median(angles) if angles else 0.0
+    # Estimate similarity transform (rotation + uniform scale + translation)
+    # RANSAC rejects outliers from moving objects and unreliable flow
+    M, inliers = cv2.estimateAffinePartial2D(
+        pts1, pts2,
+        method=cv2.RANSAC,
+        ransacReprojThreshold=3.0,
+        maxIters=2000,
+        confidence=0.99,
+    )
 
-    # Convert to small angle (rotation is usually small in video)
-    da = np.clip(da, -0.1, 0.1)  # Limit to ~5 degrees
+    if M is not None:
+        dx = float(M[0, 2])
+        dy = float(M[1, 2])
+        da = float(np.arctan2(M[1, 0], M[0, 0]))
+    else:
+        dx, dy, da = 0.0, 0.0, 0.0
 
     return np.array([dx, dy, da])
 
@@ -217,13 +235,13 @@ def process_video(args):
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    emit('flow', 20, message="Starting flow estimation")
+    emit('flow', 5, message="Starting flow estimation")
 
     # ============================================================
-    # Pass 1: Flow Estimation (20-50%)
+    # Pass 1: Flow Estimation (5-90%)
     # ============================================================
 
-    trajectory = []
+    transforms = [np.array([0.0, 0.0, 0.0])]  # Frame 0: no previous → zero motion
     prev_frame = None
     frame_idx = 0
 
@@ -236,12 +254,12 @@ def process_video(args):
             # Estimate flow between consecutive frames
             flow = estimate_flow(model, device, prev_frame, frame, args.max_iterations)
 
-            # Convert flow to transform
+            # Convert flow to transform [dx, dy, da]
             transform = flow_to_transform(flow)
-            trajectory.append(transform)
+            transforms.append(transform)
 
             # Update progress
-            progress = 20 + (frame_idx / total_frames) * 30
+            progress = 5 + (frame_idx / total_frames) * 85
             if frame_idx % 10 == 0:
                 emit('flow', progress, message=f"Flow estimation ({frame_idx}/{total_frames})")
 
@@ -250,34 +268,56 @@ def process_video(args):
 
     cap.release()
 
-    if len(trajectory) == 0:
+    if len(transforms) <= 1:
         emit_error("No frames processed")
         return None
 
-    emit('trajectory', 50, message="Smoothing trajectory")
-
     # ============================================================
-    # Pass 2: Trajectory Smoothing (50-60%)
+    # Pass 2: Trajectory Smoothing (91-92%)
     # ============================================================
 
-    trajectory = np.array(trajectory)
+    transforms = np.array(transforms)
 
-    # Apply smoothing to each component
-    smoothed = apply_smoothing(
-        trajectory,
+    emit('trajectory', 91, message="Smoothing trajectory")
+
+    # Build cumulative trajectory (same approach as OpenCV script)
+    # trajectory[0] = [0,0,0] (frame 0 is the origin)
+    cumulative_trajectory = np.cumsum(transforms, axis=0)
+
+    # Convert smoothing strength to method-specific parameters
+    if args.smoothing_method == 'moving_average':
+        smooth_params = {'window': int(args.smoothing_strength)}
+    elif args.smoothing_method == 'savgol':
+        window = int(args.smoothing_strength)
+        if window % 2 == 0:
+            window += 1
+        smooth_params = {'window': window, 'polyorder': 3}
+    elif args.smoothing_method == 'gaussian':
+        smooth_params = {'sigma': args.smoothing_strength / 10.0}
+    elif args.smoothing_method == 'spline':
+        smooth_params = {'smoothing_factor': args.smoothing_strength}
+    else:
+        smooth_params = {'window': int(args.smoothing_strength)}
+
+    # Smooth the cumulative trajectory
+    smooth_trajectory = apply_smoothing(
+        cumulative_trajectory,
         method=args.smoothing_method,
-        window=args.smoothing_strength,
-        sigma=args.smoothing_strength / 2.0,
-        smoothing_factor=args.smoothing_strength * 100,
+        **smooth_params,
     )
 
-    # Compute stabilization transforms (difference between original and smoothed)
-    stabilization_transforms = trajectory - smoothed
+    # Correction = smoothed path - original path (applied per-frame)
+    correction = smooth_trajectory - cumulative_trajectory
 
-    emit('transform', 60, message="Applying stabilization")
+    max_corr = np.max(np.abs(correction), axis=0)
+    emit('trajectory', 92, message=(
+        f"Trajectory smoothed — max correction: dx={max_corr[0]:.1f} dy={max_corr[1]:.1f} da={max_corr[2]:.4f}"
+    ))
+
+    emit('transform', 92, message="Applying stabilization")
 
     # ============================================================
-    # Pass 3: Frame Warping and Encoding (60-100%)
+    # Pass 3: Frame Warping and Encoding (92-100%)
     # ============================================================
 
     # Reopen video for second pass
@@ -300,12 +340,14 @@ def process_video(args):
     else:
         out_width, out_height = width, height
 
-    # Crop percentage
-    crop_factor = 1.0 - (args.crop_percent / 100.0)
-    crop_width = int(out_width * crop_factor)
-    crop_height = int(out_height * crop_factor)
+    # Crop percentage (applied after resizing to output resolution)
+    crop_percent = args.crop_percent / 100.0
+    crop_width = int(out_width * (1 - crop_percent))
+    crop_height = int(out_height * (1 - crop_percent))
+    crop_x = (out_width - crop_width) // 2
+    crop_y = (out_height - crop_height) // 2
 
-    # FFmpeg writer
+    # FFmpeg writer — dimensions must match the final cropped frame
     ffmpeg_cmd = [
         args.ffmpeg,
         '-y',
@@ -325,47 +367,41 @@ def process_video(args):
     ffmpeg_process = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE)
 
     frame_idx = 0
-    cumulative_transform = np.zeros(3)
 
     while True:
         ret, frame = cap.read()
         if not ret:
             break
 
-        # Get stabilization transform for this frame
-        if frame_idx < len(stabilization_transforms):
-            delta = stabilization_transforms[frame_idx]
-            cumulative_transform += delta
+        # Get correction for this frame (already computed per-frame)
+        if frame_idx < len(correction):
+            dx, dy, da = correction[frame_idx]
+        else:
+            dx, dy, da = 0.0, 0.0, 0.0
 
-        # Build affine transformation matrix
-        dx, dy, da = cumulative_transform
-
-        # Rotation matrix
-        M_rot = cv2.getRotationMatrix2D((width / 2, height / 2), np.degrees(da), 1.0)
-
-        # Add translation
-        M_rot[0, 2] += dx
-        M_rot[1, 2] += dy
+        # Build affine transform matrix (same as OpenCV script)
+        transform_matrix = np.array([
+            [np.cos(da), -np.sin(da), dx],
+            [np.sin(da),  np.cos(da), dy]
+        ], dtype=np.float32)
 
         # Warp frame
-        stabilized = cv2.warpAffine(frame, M_rot, (width, height),
+        stabilized = cv2.warpAffine(frame, transform_matrix, (width, height),
                                     flags=cv2.INTER_LINEAR,
                                     borderMode=cv2.BORDER_REPLICATE)
 
-        # Crop to remove borders
-        crop_x = (width - crop_width) // 2
-        crop_y = (height - crop_height) // 2
-        cropped = stabilized[crop_y:crop_y + crop_height, crop_x:crop_x + crop_width]
+        # Resize to output resolution first (if needed)
+        if (out_width, out_height) != (width, height):
+            stabilized = cv2.resize(stabilized, (out_width, out_height), interpolation=cv2.INTER_LINEAR)
 
-        # Resize to output resolution if needed
-        if (crop_width, crop_height) != (out_width, out_height):
-            cropped = cv2.resize(cropped, (out_width, out_height), interpolation=cv2.INTER_LINEAR)
+        # Then crop to remove black borders
+        cropped = stabilized[crop_y:crop_y + crop_height, crop_x:crop_x + crop_width]
 
         # Write to FFmpeg
         ffmpeg_process.stdin.write(cropped.tobytes())
 
         # Update progress
-        progress = 60 + (frame_idx / total_frames) * 40
+        progress = 92 + (frame_idx / total_frames) * 8
         if frame_idx % 10 == 0:
             emit('transform', progress, message=f"Stabilizing ({frame_idx}/{total_frames})")
 
@@ -402,8 +438,8 @@ def main():
                        help='RAFT model variant (sintel for natural videos)')
     parser.add_argument('--max-iterations', type=int, default=12,
                        help='RAFT refinement iterations (6-20)')
-    parser.add_argument('--smoothing-method', default='savitzky_golay',
-                       choices=['moving_average', 'savitzky_golay', 'gaussian', 'spline'],
+    parser.add_argument('--smoothing-method', default='savgol',
+                       choices=['moving_average', 'savgol', 'gaussian', 'spline'],
                        help='Trajectory smoothing method')
     parser.add_argument('--smoothing-strength', type=int, default=30,
                        help='Smoothing window/strength (10-100)')

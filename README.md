@@ -4,7 +4,7 @@ Professional video stabilization application with advanced motion analysis and A
 
 ## Description
 
-Video Stabbot is a desktop video stabilization application built with Electron. It provides a polished dark-themed UI for stabilizing shaky video footage using multiple cutting-edge technologies: FFmpeg's vidstab filters, OpenCV feature tracking, Gyroflow gyroscope-based stabilization, and RAFT deep learning optical flow.
+Video Stabbot is a desktop video stabilization application built with Electron. It provides a polished dark-themed UI for stabilizing shaky video footage using multiple cutting-edge technologies: FFmpeg's vidstab filters, OpenCV feature tracking, and RAFT deep learning optical flow.
 
 ## Features
 
@@ -24,13 +24,6 @@ Video Stabbot is a desktop video stabilization application built with Electron. 
   - Multiple smoothing methods: Savitzky-Golay, Gaussian, Moving Average, Cubic Spline
   - Configurable smoothing strength, crop percentage, and resolution
 
-- **Gyroflow Integration** (requires Gyroflow CLI) — Gyroscope-based stabilization for cameras with embedded motion data
-  - Auto-detects gyroscope metadata (GoPro, DJI, Insta360, Sony)
-  - Smoothing strength and FOV adjustment controls
-  - Horizon lock for level stabilization
-  - Lens profile selection for accurate correction
-  - Best-in-class quality for supported cameras
-
 - **RAFT Deep Learning** (requires PyTorch) — AI-powered dense optical flow for ultimate stabilization quality
   - Uses RAFT neural network for dense motion estimation
   - RAFT-Sintel (natural videos) or RAFT-Things (general) model variants
@@ -41,7 +34,7 @@ Video Stabbot is a desktop video stabilization application built with Electron. 
 
 ### General Features
 - **GPU Acceleration** — Auto-detects NVIDIA NVENC, Intel QSV, AMD AMF, or Apple VideoToolbox; falls back to CPU (libx264)
-- **Smart Dependency Detection** — Advanced modes automatically show/hide based on installed dependencies
+- **Smart Dependency Detection** — Advanced modes appear grayed out with tooltip explanations when prerequisites are missing
 - **Drag-and-drop or file-picker** — Easy video input
 - **Real-time progress tracking** — Phase labels, progress bar, and elapsed time
 - **Tooltips** — Hover over any setting for detailed explanations
@@ -64,26 +57,15 @@ Video Stabbot is a desktop video stabilization application built with Electron. 
   pip install opencv-python numpy scipy
   ```
 
-#### Gyroflow Mode
-- **Gyroflow CLI** — Download from https://gyroflow.xyz/download
-  - Windows: Install to `C:\Program Files\Gyroflow\` or add to PATH
-  - macOS: Install to `/Applications/Gyroflow.app/`
-  - Linux: Install to `/usr/bin/gyroflow-cli` or add to PATH
-- Compatible cameras with gyroscope data:
-  - GoPro Hero 5 and newer
-  - DJI drones and action cameras (Osmo Action, etc.)
-  - Insta360 cameras (various models)
-  - Sony cameras (select models with gyro metadata)
-
 #### RAFT Deep Learning Mode
 - **Python 3.8+** — on your system PATH
 - **PyTorch and torchvision** (large install ~2-4GB):
   ```bash
+  # GPU version (NVIDIA CUDA) - highly recommended
+  pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+
   # CPU-only version
   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-
-  # GPU version (NVIDIA CUDA) - highly recommended
-  pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
   ```
 - **Additional packages**:
   ```bash
@@ -116,7 +98,7 @@ This launches the Electron app. From there:
 1. **Select a video** — Drag onto the drop zone or click to browse
 2. **Choose a stabilization mode**:
    - FFmpeg modes: High Quality or Custom
-   - Advanced modes (if dependencies installed): OpenCV Features, Gyroflow, or RAFT Deep Learning
+   - Advanced modes (if dependencies installed): OpenCV Features or RAFT Deep Learning
 3. **Configure settings** — Each mode has its own settings view with tooltips
 4. **Pick a save location** — Choose where to save the stabilized video
 5. **Wait for processing** — Progress bar shows current phase and elapsed time
@@ -141,7 +123,6 @@ Video-Stabbot/
 └── scripts/
     ├── smoothing_lib.py      Shared trajectory smoothing library (SciPy-based)
     ├── opencv_feature_tracking.py    SIFT/ORB/AKAZE feature-based stabilization
-    ├── gyroflow_integration.py       Gyroflow CLI wrapper
     └── raft_dense_motion.py          RAFT deep learning stabilization
 ```
 
@@ -152,27 +133,19 @@ Video-Stabbot/
 | **High Quality** | Fast | Good | FFmpeg only | General use, quick results |
 | **Custom** | Fast | Good-Excellent | FFmpeg only | Fine-tuning parameters |
 | **OpenCV Features** | Medium | Excellent | Python + SciPy | Complex motion, superior quality |
-| **Gyroflow** | Fast-Medium | Best | Gyroflow CLI + gyro data | GoPro/DJI/Insta360 footage |
 | **RAFT Deep Learning** | Slow | Ultimate | Python + PyTorch + GPU | Maximum quality (time permitting) |
 
 ## Troubleshooting
 
-### Advanced modes don't show up
-- **OpenCV**: Install `pip install scipy` - required for trajectory smoothing
-- **Gyroflow**: Install Gyroflow CLI from https://gyroflow.xyz/download
-- **RAFT**: Install `pip install torch torchvision` (large download ~2-4GB)
+### Advanced modes are grayed out
+- **OpenCV**: Install `pip install scipy` — required for trajectory smoothing
+- **RAFT**: Install `pip install torch torchvision opencv-python numpy scipy` — hover over the grayed-out button for specific missing packages
 
 ### RAFT mode is very slow
 - RAFT requires significant computing power
 - Install PyTorch with CUDA support for GPU acceleration
 - Reduce refinement iterations (6 instead of 12) for faster processing
 - Consider using OpenCV mode instead for CPU-only systems
-
-### Gyroflow says "No gyroscope data detected"
-- Not all cameras embed gyroscope metadata
-- Check if your camera is supported: GoPro Hero 5+, DJI drones/action cams, Insta360
-- Regular smartphone/camera videos without gyro data cannot use Gyroflow mode
-- Try OpenCV or RAFT modes instead
 
 ### FFmpeg vidstab filters not found
 - Download FFmpeg build with libvidstab support
