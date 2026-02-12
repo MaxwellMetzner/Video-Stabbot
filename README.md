@@ -9,7 +9,9 @@ Video Stabbot is a desktop video stabilization application built with Electron. 
 ## Features
 
 ### FFmpeg Modes
+
 - **High Quality Mode** — Maximum analysis depth and smoothing using FFmpeg vidstab for excellent results
+
 - **Custom Mode** — Full manual control over all vidstab parameters:
   - Border crop mode, smoothing strength (1-300), shakiness detection
   - Accuracy, auto/manual zoom, zoom speed, interpolation method
@@ -33,6 +35,7 @@ Video Stabbot is a desktop video stabilization application built with Electron. 
   - Best quality but slowest processing
 
 ### General Features
+
 - **GPU Acceleration** — Auto-detects NVIDIA NVENC, Intel QSV, AMD AMF, or Apple VideoToolbox; falls back to CPU (libx264)
 - **Smart Dependency Detection** — Advanced modes appear grayed out with tooltip explanations when prerequisites are missing
 - **Drag-and-drop or file-picker** — Easy video input
@@ -43,6 +46,7 @@ Video Stabbot is a desktop video stabilization application built with Electron. 
 ## Prerequisites
 
 ### Core Requirements
+
 - **Node.js** (v18 or later) — https://nodejs.org
 - **FFmpeg** with **libvidstab** support — must be on your system PATH
   - Download from https://ffmpeg.org/download.html
@@ -51,6 +55,7 @@ Video Stabbot is a desktop video stabilization application built with Electron. 
 ### Optional: Advanced Modes
 
 #### OpenCV Feature Tracking Mode
+
 - **Python 3.8+** — on your system PATH
 - **Required packages**:
   ```bash
@@ -58,8 +63,10 @@ Video Stabbot is a desktop video stabilization application built with Electron. 
   ```
 
 #### RAFT Deep Learning Mode
+
 - **Python 3.8+** — on your system PATH
 - **PyTorch and torchvision** (large install ~2-4GB):
+
   ```bash
   # GPU version (NVIDIA CUDA) - highly recommended
   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
@@ -67,10 +74,13 @@ Video Stabbot is a desktop video stabilization application built with Electron. 
   # CPU-only version
   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
   ```
+
 - **Additional packages**:
+
   ```bash
   pip install opencv-python numpy scipy
   ```
+
 - **Note**: First run will auto-download the RAFT model (~250MB). GPU strongly recommended for acceptable performance.
 
 ## Setup
@@ -129,7 +139,7 @@ Video-Stabbot/
 ## Mode Comparison
 
 | Mode | Speed | Quality | Requirements | Best For |
-|------|-------|---------|--------------|----------|
+| ------ | ------- | --------- | -------------- | ---------- |
 | **High Quality** | Fast | Good | FFmpeg only | General use, quick results |
 | **Custom** | Fast | Good-Excellent | FFmpeg only | Fine-tuning parameters |
 | **OpenCV Features** | Medium | Excellent | Python + SciPy | Complex motion, superior quality |
@@ -138,16 +148,19 @@ Video-Stabbot/
 ## Troubleshooting
 
 ### Advanced modes are grayed out
+
 - **OpenCV**: Install `pip install scipy` — required for trajectory smoothing
 - **RAFT**: Install `pip install torch torchvision opencv-python numpy scipy` — hover over the grayed-out button for specific missing packages
 
 ### RAFT mode is very slow
+
 - RAFT requires significant computing power
 - Install PyTorch with CUDA support for GPU acceleration
 - Reduce refinement iterations (6 instead of 12) for faster processing
 - Consider using OpenCV mode instead for CPU-only systems
 
 ### FFmpeg vidstab filters not found
+
 - Download FFmpeg build with libvidstab support
 - Verify: run `ffmpeg -filters | grep vidstab` in terminal
 - Windows users: try builds from https://www.gyan.dev/ffmpeg/builds/
