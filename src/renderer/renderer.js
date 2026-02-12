@@ -617,8 +617,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function init() {
     showView('loading');
+
+    // Listen for step-by-step loading status from main process
+    const stepOrder = ['ffmpeg', 'encoder', 'python', 'packages'];
+    const progressMap = { ffmpeg: 25, encoder: 50, python: 75, packages: 100 };
+
+    window.stabbot.onLoadingStatus(({ step, status, message }) => {
+        // Update the status text
+        const statusEl = document.getElementById('loading-status');
+        if (statusEl) statusEl.textContent = message;
+
+        // Update the step indicator
+        const stepEl = document.getElementById(`step-${step}`);
+        if (stepEl) {
+            stepEl.className = `loading-step ${status}`;
+        }
+
+        // Update progress bar
+        if (status === 'done' || status === 'skipped' || status === 'error') {
+            const fill = document.getElementById('loading-progress-fill');
+            if (fill) fill.style.width = `${progressMap[step] || 0}%`;
+        } else if (status === 'active') {
+            // Show partial progress for active step
+            const idx = stepOrder.indexOf(step);
+            const prev = idx > 0 ? progressMap[stepOrder[idx - 1]] : 0;
+            const fill = document.getElementById('loading-progress-fill');
+            if (fill) fill.style.width = `${prev + 5}%`;
+        }
+    });
+
     try {
         system = await window.stabbot.detectSystem();
+        window.stabbot.removeLoadingStatusListener();
         if (!system.ok) {
             document.getElementById('error-message').textContent = system.error;
             showView('error');
@@ -627,6 +657,7 @@ async function init() {
         updateBadges(system);
         showView('select');
     } catch (err) {
+        window.stabbot.removeLoadingStatusListener();
         document.getElementById('error-message').textContent = `Startup error: ${err.message}`;
         showView('error');
     }

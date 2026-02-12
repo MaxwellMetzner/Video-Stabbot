@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
 const { spawn, execSync, execFileSync } = require('child_process');
+const { Worker } = require('worker_threads');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -522,55 +523,35 @@ function createWindow() {
 // IPC Handlers
 // ============================================================
 
-ipcMain.handle('detect-system', async () => {
-    const ffmpeg = findExecutable('ffmpeg');
-    const ffprobe = findExecutable('ffprobe');
-    if (!ffmpeg || !ffprobe) {
-        return {
-            ok: false,
-            error:
-                'FFmpeg not found in your system PATH.\n' +
-                'Please install FFmpeg from https://ffmpeg.org/download.html ' +
-                'and make sure both ffmpeg and ffprobe are available in PATH.',
-        };
-    }
-    const vidstab = checkVidstabSupport(ffmpeg);
-    if (!vidstab) {
-        return {
-            ok: false,
-            error:
-                'Your FFmpeg build does not include vidstab filters.\n' +
-                'Please install a version of FFmpeg compiled with libvidstab support.',
-        };
-    }
-    const encoder = detectEncoder(ffmpeg);
-    const python = findPython();
-    const hasPythonDeps = python ? checkPythonDeps(python) : false;
-    const hasScipy = python ? checkPythonPackage(python, 'scipy') : false;
-    const hasTorch = python ? checkPythonPackage(python, 'torch') : false;
-    const hasTorchvision = python ? checkPythonPackage(python, 'torchvision') : false;
+ipcMain.handle('detect-system', () => {
+    return new Promise((resolve, reject) => {
+        const worker = new Worker(path.join(__dirname, 'detect-worker.js'));
 
-    // Build detailed RAFT status
-    const raftMissing = [];
-    if (!python) raftMissing.push('Python 3.8+');
-    if (python && !hasPythonDeps) raftMissing.push('opencv-python, numpy');
-    if (python && !hasScipy) raftMissing.push('scipy');
-    if (python && !hasTorch) raftMissing.push('torch');
-    if (python && !hasTorchvision) raftMissing.push('torchvision');
+        worker.on('message', (msg) => {
+            if (msg.type === 'status') {
+                // Forward loading progress to the renderer
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('loading-status', {
+                        step: msg.step,
+                        status: msg.status,
+                        message: msg.message,
+                    });
+                }
+            } else if (msg.type === 'result') {
+                resolve(msg.data);
+            }
+        });
 
-    return {
-        ok: true,
-        ffmpeg,
-        ffprobe,
-        encoder,
-        python,
-        hasPythonDeps,
-        hasScipy,
-        hasTorch,
-        hasTorchvision,
-        raftReady: raftMissing.length === 0,
-        raftMissing,
-    };
+        worker.on('error', (err) => {
+            reject(new Error(`Detection worker error: ${err.message}`));
+        });
+
+        worker.on('exit', (code) => {
+            if (code !== 0) {
+                reject(new Error(`Detection worker exited with code ${code}`));
+            }
+        });
+    });
 });
 
 ipcMain.handle('get-video-info', async (_e, { ffprobe, filePath }) => {

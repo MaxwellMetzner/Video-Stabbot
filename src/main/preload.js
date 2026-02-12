@@ -2,6 +2,12 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('stabbot', {
     detectSystem: () => ipcRenderer.invoke('detect-system'),
+    onLoadingStatus: (callback) => {
+        ipcRenderer.on('loading-status', (_event, data) => callback(data));
+    },
+    removeLoadingStatusListener: () => {
+        ipcRenderer.removeAllListeners('loading-status');
+    },
     getVideoInfo: (data) => ipcRenderer.invoke('get-video-info', data),
     selectFile: () => ipcRenderer.invoke('select-file'),
     selectSavePath: (defaultPath) => ipcRenderer.invoke('select-save-path', defaultPath),

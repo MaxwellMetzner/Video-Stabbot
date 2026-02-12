@@ -29,8 +29,32 @@
             <!-- Loading View -->
             <section id="view-loading" class="view active">
                 <div class="view-content centered">
-                    <div class="spinner"></div>
-                    <p class="muted">Detecting system capabilities&hellip;</p>
+                    <div class="loading-logo">
+                        <span class="loading-logo-icon">&#127916;</span>
+                        <h2 class="loading-title">Video Stabbot</h2>
+                    </div>
+                    <div class="loading-progress-bar">
+                        <div class="loading-progress-fill" id="loading-progress-fill"></div>
+                    </div>
+                    <p class="muted" id="loading-status">Initializing&hellip;</p>
+                    <div class="loading-steps" id="loading-steps">
+                        <div class="loading-step" id="step-ffmpeg">
+                            <span class="step-indicator"></span>
+                            <span class="step-label">FFmpeg</span>
+                        </div>
+                        <div class="loading-step" id="step-encoder">
+                            <span class="step-indicator"></span>
+                            <span class="step-label">Encoder</span>
+                        </div>
+                        <div class="loading-step" id="step-python">
+                            <span class="step-indicator"></span>
+                            <span class="step-label">Python</span>
+                        </div>
+                        <div class="loading-step" id="step-packages">
+                            <span class="step-indicator"></span>
+                            <span class="step-label">Packages</span>
+                        </div>
+                    </div>
                 </div>
             </section>
 

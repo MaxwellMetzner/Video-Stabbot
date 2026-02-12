@@ -252,6 +252,115 @@ h2 {
 }
 
 /* ============================================================
+   Loading Screen
+   ============================================================ */
+
+.loading-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.loading-logo-icon {
+    font-size: 48px;
+    line-height: 1;
+    animation: loadingPulse 2s ease-in-out infinite;
+}
+
+@keyframes loadingPulse {
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.08); }
+}
+
+.loading-title {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+}
+
+.loading-progress-bar {
+    width: 220px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.loading-progress-fill {
+    width: 0%;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+}
+
+.loading-steps {
+    display: flex;
+    gap: 18px;
+    margin-top: 8px;
+}
+
+.loading-step {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+    transition: color 0.3s ease;
+}
+
+.loading-step.active {
+    color: var(--accent);
+}
+
+.loading-step.done {
+    color: var(--success);
+}
+
+.loading-step.skipped {
+    color: var(--text-muted);
+    opacity: 0.6;
+}
+
+.loading-step.error {
+    color: var(--error);
+}
+
+.step-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+    flex-shrink: 0;
+}
+
+.loading-step.active .step-indicator {
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent-glow);
+    animation: stepPulse 1s ease-in-out infinite;
+}
+
+.loading-step.done .step-indicator {
+    background: var(--success);
+    box-shadow: 0 0 6px var(--success-glow);
+}
+
+.loading-step.error .step-indicator {
+    background: var(--error);
+    box-shadow: 0 0 6px var(--error-glow);
+}
+
+@keyframes stepPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* ============================================================
    Icon Circles
    ============================================================ */
 
