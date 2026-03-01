@@ -167,21 +167,97 @@ Video-Stabbot/
 
 ## Building a Distributable
 
-To package the app as a standalone executable:
+To package the app as a standalone Windows executable (no console window):
 
 ```bash
-# Install electron-builder
-npm install --save-dev electron-builder
-
-# Build for your platform
-npx electron-builder --win   # Windows
-npx electron-builder --mac   # macOS
-npx electron-builder --linux # Linux
+# Build Windows release artifacts
+npm run dist:win
 ```
 
-The output will be in the `dist/` folder.
+Output files are created in `dist/`:
+
+- `video-stabbot Setup <version>.exe` (installer)
+- `video-stabbot <version>.exe` (portable single executable, if generated)
+
+You can double-click either executable to launch the app directly.
+
+Optional build commands:
+
+```bash
+# Build unpacked app folder (quick local packaging test)
+npm run pack
+
+# Build all configured targets
+npm run dist
+```
 
 **Note**: Python dependencies (scipy, torch) must be installed separately by end users for advanced modes to work.
+
+## GitHub + Releases Workflow
+
+### What goes in GitHub (commit these)
+
+Commit source and project metadata only:
+
+- `src/`
+- `scripts/`
+- `package.json`
+- `package-lock.json`
+- `requirements.txt`
+- `README.md`
+- `.gitignore`
+- Any icons/assets/config files you intentionally add for packaging
+
+Do **not** commit generated build artifacts (`dist/`, unpacked app folders, installers, portable exes).
+
+### What to upload under GitHub Releases
+
+After running `npm run dist:win`, upload these files from `dist/` to the release:
+
+- `video-stabbot Setup <version>.exe` (recommended for most users)
+- `video-stabbot <version>.exe` (portable build, if generated)
+
+Optional:
+
+- `latest.yml` and `.blockmap` files only if you later add auto-update support
+
+Do not upload `win-unpacked/` (developer/debug artifact, very large, not needed by end users).
+
+### Recommended release steps (Windows)
+
+1. Update version in `package.json` (example: `2.0.1`)
+2. Commit and push changes:
+
+  ```bash
+  git add .
+  git commit -m "Release v2.0.1"
+  git push
+  ```
+
+3. Build release artifacts:
+
+  ```bash
+  npm run dist:win
+  ```
+
+4. Create and push tag:
+
+  ```bash
+  git tag v2.0.1
+  git push origin v2.0.1
+  ```
+
+5. In GitHub: **Releases** → **Draft a new release**
+  - Tag: `v2.0.1`
+  - Title: `Video Stabbot v2.0.1`
+  - Upload the `.exe` asset(s) from `dist/`
+  - Publish release
+
+### End-user install guidance
+
+- Most users should download the `Setup` exe and install normally.
+- Users who prefer no installation can use the portable exe.
+- Advanced modes still require local Python + packages (`opencv-python`, `numpy`, `scipy`, and for RAFT: `torch`, `torchvision`).
 
 ## License
 

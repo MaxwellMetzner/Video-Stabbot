@@ -4,7 +4,28 @@
   "description": "Automatic Video Stabilization Tool",
   "main": "src/main/main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win"
+  },
+  "build": {
+    "appId": "com.maxwellmetzner.videostabbot",
+    "productName": "Video Stabbot",
+    "files": [
+      "src/**/*",
+      "scripts/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "scripts/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    }
   },
   "devDependencies": {
     "electron": "^33.0.0",

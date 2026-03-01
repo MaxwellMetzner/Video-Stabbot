@@ -4,9 +4,14 @@ node_modules/
 
 # Build output
 dist/
+release/
+out/
 
 # Logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # FFmpeg temp files
 transforms.trf
@@ -26,3 +31,10 @@ Thumbs.db
 # IDE
 .vscode/
 *.code-workspace
+
+# Packaging/signing secrets
+*.p12
+*.pfx
+*.cer
+*.pem
+*.key

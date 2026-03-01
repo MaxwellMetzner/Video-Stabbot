@@ -357,6 +357,13 @@ function cleanup(dir) {
     } catch {}
 }
 
+function getPythonScriptPath(scriptName) {
+    if (app.isPackaged) {
+        return path.join(process.resourcesPath, 'app.asar.unpacked', 'scripts', scriptName);
+    }
+    return path.join(__dirname, '..', '..', 'scripts', scriptName);
+}
+
 function stabilize(ffmpegPath, input, output, mode, encoder, duration, event, customSettings) {
     return new Promise((resolve, reject) => {
         cancelled = false;
@@ -609,7 +616,7 @@ ipcMain.handle('run-python-script', async (event, { scriptName, args, duration }
     if (!PATHS.python) {
         throw new Error('Python 3.8+ not found. Please install Python to use advanced modes.');
     }
-    const scriptPath = path.join(__dirname, '..', '..', 'scripts', scriptName);
+    const scriptPath = getPythonScriptPath(scriptName);
     if (!fs.existsSync(scriptPath)) {
         throw new Error(`Script not found: ${scriptName}`);
     }
