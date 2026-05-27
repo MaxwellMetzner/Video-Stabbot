@@ -502,14 +502,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selected) await handleFile(selected);
     });
 
-    dropZone.addEventListener('keydown', async (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            const selected = await window.stabbot.selectFile();
-            if (selected) await handleFile(selected);
-        }
-    });
-
     dropZone.addEventListener('dragover', e => {
         e.preventDefault();
         dropZone.classList.add('drag-over');

@@ -51,6 +51,7 @@ body {
     color: var(--text-primary);
     overflow: hidden;
     height: 100vh;
+    -webkit-user-select: none;
     user-select: none;
 }
 
@@ -215,8 +216,8 @@ main {
     max-height: 200px;
     overflow-y: auto;
     text-align: left;
-    user-select: text;
     -webkit-user-select: text;
+    user-select: text;
     cursor: text;
     width: 100%;
     box-sizing: border-box;
@@ -433,10 +434,15 @@ h2 {
     padding: 48px 32px;
     border: 2px dashed rgba(255, 255, 255, 0.1);
     border-radius: var(--radius);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: center;
     cursor: pointer;
     transition: all 0.25s ease;
     -webkit-app-region: no-drag;
     outline: none;
+    appearance: none;
 }
 
 #drop-zone:hover,
@@ -628,26 +634,29 @@ h2 {
     line-height: 1;
 }
 
-.quality-card h3 {
+.card-title {
+    display: block;
     font-size: 16px;
     font-weight: 600;
     margin-bottom: 6px;
 }
 
 .card-desc {
+    display: block;
     font-size: 12px;
     color: var(--text-secondary);
     margin-bottom: 16px;
 }
 
 .card-details {
-    list-style: none;
+    display: flex;
+    flex-direction: column;
     font-size: 12px;
     color: var(--text-muted);
     line-height: 1.8;
 }
 
-.card-details li::before {
+.card-details span::before {
     content: '- ';
     color: var(--text-muted);
 }
@@ -912,7 +921,7 @@ h2 {
 }
 
 .setting-value-input[type=number] {
-    -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 /* Tooltips */
@@ -1015,17 +1024,28 @@ h2 {
     display: flex;
     align-items: flex-start;
     gap: 10px;
+    width: 100%;
     padding: 10px 12px;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border);
     cursor: pointer;
     transition: all 0.2s;
     background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    appearance: none;
 }
 
-.radio-option:hover {
+.radio-option:hover,
+.radio-option:focus-visible {
     border-color: var(--border-hover);
     background: rgba(255, 255, 255, 0.02);
+}
+
+.radio-option:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 
 .radio-option.active {

@@ -8,10 +8,10 @@ Video Stabbot is an Electron app for stabilizing shaky footage from a single int
 
 ## Screenshots
 
-![File selection](./screenshot-file-selection.png)
-![Mode selection](./screenshot-mode-selection.png)
-![Custom settings](./screenshot-custom-settings.png)
-![Processing](./screenshot-processing.png)
+![File selection](./screenshot-file-selection.jpg)
+![Mode selection](./screenshot-mode-selection.jpg)
+![Custom settings](./screenshot-custom-settings.jpg)
+![Processing](./screenshot-processing.jpg)
 
 ## Features
 
@@ -128,10 +128,10 @@ Video-Stabbot/
 |-- package.json
 |-- requirements.txt
 |-- README.md
-|-- screenshot-file-selection.png
-|-- screenshot-mode-selection.png
-|-- screenshot-custom-settings.png
-|-- screenshot-processing.png
+|-- screenshot-file-selection.jpg
+|-- screenshot-mode-selection.jpg
+|-- screenshot-custom-settings.jpg
+|-- screenshot-processing.jpg
 |-- src/
 |   |-- main/
 |   |   |-- main.js
@@ -208,7 +208,7 @@ Commit source and project metadata only:
 - `package-lock.json`
 - `requirements.txt`
 - `README.md`
-- screenshot pngs or other intentional assets
+- screenshot jpgs or other intentional assets
 - `.gitignore`
 
 Do not commit generated build artifacts such as `dist/`, installers, portable executables, or unpacked app folders.
