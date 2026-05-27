@@ -1,486 +1,684 @@
 #!/usr/bin/env python3
 """
-OpenCV Feature Tracking Video Stabilization
+OpenCV feature-tracking video stabilization.
 
-Uses feature detection (SIFT/ORB/AKAZE) + homography estimation + trajectory smoothing
-to stabilize video without relying on gyroscope data.
+This path estimates global camera motion from sparse tracked points:
+1. Detect stable points in the previous frame.
+2. Track them into the current frame with pyramidal Lucas-Kanade optical flow.
+3. Reject bad tracks with a forward/backward check.
+4. Estimate a limited affine camera transform with RANSAC.
+5. Smooth the camera trajectory, warp frames, and mux source audio.
 """
 
 import argparse
 import json
-import sys
+import math
 import os
 import subprocess
+import sys
 import threading
+
 import cv2
 import numpy as np
-from pathlib import Path
 
-# Import smoothing library
 from smoothing_lib import apply_smoothing
 
 
+MIN_TRACKS = 12
+
+
 def emit(phase, progress, **extra):
-    """Emit progress as JSON to stdout"""
+    """Emit progress as JSON to stdout."""
     msg = {"phase": phase, "progress": round(progress, 2), **extra}
     sys.stdout.write(json.dumps(msg) + "\n")
     sys.stdout.flush()
 
 
 def emit_error(message):
-    """Emit error message to stderr"""
+    """Emit error message to stderr."""
     sys.stderr.write(json.dumps({"error": message}) + "\n")
     sys.stderr.flush()
 
 
-def create_feature_detector(detector_type):
-    """Create feature detector based on type"""
+def create_keypoint_detector(detector_type, max_features):
     detector_type = detector_type.lower()
+    max_features = max(100, int(max_features))
 
-    if detector_type == 'sift':
-        return cv2.SIFT_create()
-    elif detector_type == 'orb':
-        return cv2.ORB_create(nfeatures=3000)
-    elif detector_type == 'akaze':
+    if detector_type == "sift":
+        return cv2.SIFT_create(nfeatures=max_features, contrastThreshold=0.01)
+    if detector_type == "orb":
+        return cv2.ORB_create(nfeatures=max_features, fastThreshold=12)
+    if detector_type == "akaze":
         return cv2.AKAZE_create()
+    if detector_type == "gftt":
+        return None
+    raise ValueError(f"Unknown detector type: {detector_type}")
+
+
+def good_features(gray, max_features):
+    """Detect a grid-distributed set of corners instead of one clustered set."""
+    max_features = max(100, int(max_features))
+    height, width = gray.shape[:2]
+    grid_rows = 4
+    grid_cols = 6
+    per_cell = max(12, int(math.ceil(max_features / float(grid_rows * grid_cols))))
+    points = []
+
+    for row in range(grid_rows):
+        y0 = int(round(row * height / grid_rows))
+        y1 = int(round((row + 1) * height / grid_rows))
+        for col in range(grid_cols):
+            x0 = int(round(col * width / grid_cols))
+            x1 = int(round((col + 1) * width / grid_cols))
+            roi = gray[y0:y1, x0:x1]
+            if roi.size == 0:
+                continue
+            cell_pts = cv2.goodFeaturesToTrack(
+                roi,
+                maxCorners=per_cell,
+                qualityLevel=0.008,
+                minDistance=7,
+                blockSize=7,
+                useHarrisDetector=False,
+            )
+            if cell_pts is None:
+                continue
+            cell_pts = cell_pts.reshape(-1, 2)
+            cell_pts[:, 0] += x0
+            cell_pts[:, 1] += y0
+            points.append(cell_pts)
+
+    if points:
+        pts = np.vstack(points).astype(np.float32)
+        if len(pts) > max_features:
+            pts = pts[:max_features]
+        return pts.reshape(-1, 1, 2)
+
+    pts = cv2.goodFeaturesToTrack(
+        gray,
+        maxCorners=max_features,
+        qualityLevel=0.01,
+        minDistance=8,
+        blockSize=7,
+        useHarrisDetector=False,
+    )
+    if pts is None:
+        return None
+    return pts.astype(np.float32)
+
+
+def detect_tracking_points(gray, detector_type, max_features):
+    """Return Nx1x2 points suitable for calcOpticalFlowPyrLK."""
+    detector_type = detector_type.lower()
+    max_features = max(100, int(max_features))
+
+    if detector_type == "gftt":
+        return good_features(gray, max_features)
+
+    detector = create_keypoint_detector(detector_type, max_features)
+    keypoints = detector.detect(gray, None)
+    if keypoints:
+        keypoints = sorted(keypoints, key=lambda kp: kp.response, reverse=True)[:max_features]
+        pts = np.array([kp.pt for kp in keypoints], dtype=np.float32).reshape(-1, 1, 2)
     else:
-        raise ValueError(f"Unknown detector type: {detector_type}")
+        pts = None
+
+    if pts is None or len(pts) < MIN_TRACKS:
+        return good_features(gray, max_features)
+    return pts
 
 
-def detect_and_match_features(prev_gray, curr_gray, detector, max_features=2000):
-    """
-    Detect features in both frames and match them
+def track_points(prev_gray, curr_gray, prev_pts):
+    lk_params = dict(
+        winSize=(21, 21),
+        maxLevel=3,
+        criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 30, 0.01),
+        minEigThreshold=1e-4,
+    )
 
-    Returns:
-        matched_prev_pts: Nx2 array of matched points in previous frame
-        matched_curr_pts: Nx2 array of matched points in current frame
-    """
-    # Detect keypoints and compute descriptors
-    kp1, des1 = detector.detectAndCompute(prev_gray, None)
-    kp2, des2 = detector.detectAndCompute(curr_gray, None)
-
-    if des1 is None or des2 is None or len(kp1) < 10 or len(kp2) < 10:
+    curr_pts, status, _err = cv2.calcOpticalFlowPyrLK(prev_gray, curr_gray, prev_pts, None, **lk_params)
+    if curr_pts is None or status is None:
         return None, None
 
-    # Match features using BFMatcher or FLANN
-    if isinstance(detector, cv2.ORB):
-        # Use Hamming distance for ORB (binary descriptors)
-        matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=False)
-    else:
-        # Use L2 distance for SIFT/AKAZE
-        matcher = cv2.BFMatcher(cv2.NORM_L2, crossCheck=False)
+    back_pts, back_status, _ = cv2.calcOpticalFlowPyrLK(curr_gray, prev_gray, curr_pts, None, **lk_params)
+    if back_pts is None or back_status is None:
+        return None, None
 
-    # Find matches with k=2 for ratio test
+    fb_error = np.linalg.norm(prev_pts.reshape(-1, 2) - back_pts.reshape(-1, 2), axis=1)
+    valid = (status.ravel() == 1) & (back_status.ravel() == 1) & (fb_error < 1.5)
+    if np.count_nonzero(valid) < MIN_TRACKS:
+        return None, None
+
+    return prev_pts.reshape(-1, 2)[valid], curr_pts.reshape(-1, 2)[valid]
+
+
+def estimate_camera_transform(prev_pts, curr_pts, transform_type):
+    """Estimate a stable 4-DOF affine camera motion from tracked points."""
+    if prev_pts is None or curr_pts is None or len(prev_pts) < MIN_TRACKS:
+        return None, 0, 0
+
+    source_pts = prev_pts
+    target_pts = curr_pts
+
+    if transform_type == "homography" and len(prev_pts) >= 16:
+        homography, homography_inliers = cv2.findHomography(
+            prev_pts,
+            curr_pts,
+            method=cv2.RANSAC,
+            ransacReprojThreshold=3.0,
+            maxIters=3000,
+            confidence=0.995,
+        )
+        if homography is not None and homography_inliers is not None:
+            mask = homography_inliers.ravel().astype(bool)
+            if np.count_nonzero(mask) >= MIN_TRACKS:
+                source_pts = prev_pts[mask]
+                target_pts = curr_pts[mask]
+
+    matrix, inliers = cv2.estimateAffinePartial2D(
+        source_pts,
+        target_pts,
+        method=cv2.RANSAC,
+        ransacReprojThreshold=2.5,
+        maxIters=3000,
+        confidence=0.995,
+        refineIters=20,
+    )
+    if matrix is None or inliers is None:
+        return None, 0, len(prev_pts)
+
+    return matrix, int(np.count_nonzero(inliers)), len(source_pts)
+
+
+def decompose_affine(matrix):
+    """Return [dx, dy, angle, scale_delta] from a 2x3 affine matrix."""
+    if matrix is None:
+        return np.zeros(4, dtype=np.float64)
+
+    dx = float(matrix[0, 2])
+    dy = float(matrix[1, 2])
+    angle = float(math.atan2(matrix[1, 0], matrix[0, 0]))
+    scale = float(math.sqrt(matrix[0, 0] ** 2 + matrix[1, 0] ** 2))
+    return np.array([dx, dy, angle, scale - 1.0], dtype=np.float64)
+
+
+def refine_with_ecc(prev_gray, curr_gray, matrix):
+    """Use ECC image alignment as an expensive refinement of the RANSAC estimate."""
+    if matrix is None:
+        return None
+
+    height, width = prev_gray.shape[:2]
+    scale = min(1.0, 720.0 / float(max(height, width)))
+    if scale < 1.0:
+        prev_small = cv2.resize(prev_gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+        curr_small = cv2.resize(curr_gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+    else:
+        prev_small = prev_gray
+        curr_small = curr_gray
+
+    warp = matrix.astype(np.float32).copy()
+    warp[0, 2] *= scale
+    warp[1, 2] *= scale
+
+    criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 80, 1e-5)
     try:
-        matches = matcher.knnMatch(des1, des2, k=2)
+        _cc, refined = cv2.findTransformECC(
+            prev_small,
+            curr_small,
+            warp,
+            cv2.MOTION_AFFINE,
+            criteria,
+            None,
+            5,
+        )
     except cv2.error:
-        return None, None
+        return matrix
 
-    # Apply Lowe's ratio test
-    good_matches = []
-    for match_pair in matches:
-        if len(match_pair) == 2:
-            m, n = match_pair
-            if m.distance < 0.75 * n.distance:
-                good_matches.append(m)
-
-    if len(good_matches) < 10:
-        return None, None
-
-    # Limit to max_features best matches
-    good_matches = sorted(good_matches, key=lambda x: x.distance)[:max_features]
-
-    # Extract matched point coordinates
-    pts1 = np.float32([kp1[m.queryIdx].pt for m in good_matches])
-    pts2 = np.float32([kp2[m.trainIdx].pt for m in good_matches])
-
-    return pts1, pts2
+    refined = refined.astype(np.float64)
+    refined[0, 2] /= scale
+    refined[1, 2] /= scale
+    if not np.isfinite(refined).all():
+        return matrix
+    return refined
 
 
-def estimate_transform(pts1, pts2, transform_type='affine'):
-    """
-    Estimate transformation between matched points
+def valid_motion(motion, width, height, inliers, total):
+    if total < MIN_TRACKS or inliers < MIN_TRACKS:
+        return False
 
-    Args:
-        pts1: Nx2 array of points in frame 1
-        pts2: Nx2 array of points in frame 2
-        transform_type: 'affine' or 'homography'
+    inlier_ratio = inliers / max(total, 1)
+    if inlier_ratio < 0.35:
+        return False
 
-    Returns:
-        transform: 2x3 affine or 3x3 homography matrix
-        inliers: Boolean mask of inlier points
-    """
-    if len(pts1) < 4:
-        return None, None
-
-    if transform_type == 'affine':
-        # Estimate affine transform (rotation + translation + scale)
-        transform, inliers = cv2.estimateAffinePartial2D(
-            pts1, pts2,
-            method=cv2.RANSAC,
-            ransacReprojThreshold=3.0,
-            maxIters=2000,
-            confidence=0.99
-        )
-    else:  # homography
-        # Estimate full homography (includes perspective)
-        transform, inliers = cv2.findHomography(
-            pts1, pts2,
-            method=cv2.RANSAC,
-            ransacReprojThreshold=3.0,
-            maxIters=2000,
-            confidence=0.99
-        )
-
-    return transform, inliers
+    max_shift = max(width, height) * 0.35
+    if abs(motion[0]) > max_shift or abs(motion[1]) > max_shift:
+        return False
+    if abs(motion[2]) > math.radians(25):
+        return False
+    if abs(motion[3]) > 0.20:
+        return False
+    return True
 
 
-def decompose_affine_transform(transform):
-    """
-    Decompose 2x3 affine transform into [dx, dy, da]
+def clamp_transforms(transforms, width, height):
+    clamped = np.array(transforms, dtype=np.float64, copy=True)
+    max_shift = max(width, height) * 0.35
+    clamped[:, 0] = np.clip(clamped[:, 0], -max_shift, max_shift)
+    clamped[:, 1] = np.clip(clamped[:, 1], -max_shift, max_shift)
+    clamped[:, 2] = np.clip(clamped[:, 2], -math.radians(25), math.radians(25))
+    clamped[:, 3] = np.clip(clamped[:, 3], -0.15, 0.15)
+    return clamped
 
-    Args:
-        transform: 2x3 affine matrix
 
-    Returns:
-        [dx, dy, da]: Translation x, translation y, rotation angle
-    """
-    if transform is None:
-        return np.array([0.0, 0.0, 0.0])
+def dense_flow_to_motion(flow, scale_x, scale_y):
+    height, width = flow.shape[:2]
+    step = max(4, min(height, width) // 70)
+    ys, xs = np.mgrid[0:height:step, 0:width:step]
+    pts1 = np.column_stack([xs.ravel(), ys.ravel()]).astype(np.float32)
+    flow_sub = flow[0:height:step, 0:width:step].reshape(-1, 2).astype(np.float32)
+    finite = np.isfinite(flow_sub).all(axis=1)
+    pts1 = pts1[finite]
+    flow_sub = flow_sub[finite]
+    if len(pts1) < MIN_TRACKS:
+        return None, 0, 0
 
-    dx = transform[0, 2]
-    dy = transform[1, 2]
+    magnitudes = np.linalg.norm(flow_sub, axis=1)
+    if len(magnitudes) >= 50:
+        limit = np.percentile(magnitudes, 90)
+        keep = magnitudes <= max(limit, 1.0)
+        if np.count_nonzero(keep) >= MIN_TRACKS:
+            pts1 = pts1[keep]
+            flow_sub = flow_sub[keep]
 
-    # Extract rotation angle from rotation matrix
-    da = np.arctan2(transform[1, 0], transform[0, 0])
+    pts2 = pts1 + flow_sub
+    matrix, inliers = cv2.estimateAffinePartial2D(
+        pts1,
+        pts2,
+        method=cv2.RANSAC,
+        ransacReprojThreshold=2.5,
+        maxIters=3000,
+        confidence=0.995,
+        refineIters=20,
+    )
+    if matrix is None or inliers is None:
+        return None, 0, len(pts1)
 
-    return np.array([dx, dy, da])
+    motion = decompose_affine(matrix)
+    motion[0] *= scale_x
+    motion[1] *= scale_y
+    return motion, int(np.count_nonzero(inliers)), len(pts1)
+
+
+def farneback_fallback_motion(prev_gray, curr_gray):
+    height, width = prev_gray.shape[:2]
+    scale = min(1.0, 720.0 / float(max(height, width)))
+    if scale < 1.0:
+        prev_small = cv2.resize(prev_gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+        curr_small = cv2.resize(curr_gray, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+    else:
+        prev_small = prev_gray
+        curr_small = curr_gray
+
+    flow = cv2.calcOpticalFlowFarneback(
+        prev_small,
+        curr_small,
+        None,
+        pyr_scale=0.5,
+        levels=5,
+        winsize=25,
+        iterations=5,
+        poly_n=7,
+        poly_sigma=1.5,
+        flags=cv2.OPTFLOW_FARNEBACK_GAUSSIAN,
+    )
+    return dense_flow_to_motion(flow, 1.0 / scale, 1.0 / scale)
+
+
+def smoothing_params(method, strength, frame_count):
+    strength = max(1, int(round(strength)))
+    if method == "moving_average":
+        return {"window": min(strength, frame_count)}
+    if method == "savgol":
+        return {"window": min(strength, frame_count), "polyorder": 3}
+    if method == "gaussian":
+        return {"sigma": max(0.1, strength / 10.0)}
+    if method == "spline":
+        return {"smoothing_factor": float(strength)}
+    return {"window": min(strength, frame_count)}
+
+
+def output_size(choice, width, height):
+    if choice == "1080p":
+        return 1920, 1080
+    if choice == "720p":
+        return 1280, 720
+    if choice == "480p":
+        return 854, 480
+    return width, height
+
+
+def build_affine_matrix(motion):
+    dx, dy, angle, scale_delta = motion
+    scale = float(np.clip(1.0 + scale_delta, 0.85, 1.15))
+    cos_a = math.cos(angle) * scale
+    sin_a = math.sin(angle) * scale
+    return np.array([[cos_a, -sin_a, dx], [sin_a, cos_a, dy]], dtype=np.float32)
+
+
+def resize_and_zoom(frame, out_width, out_height, crop_percent):
+    if (frame.shape[1], frame.shape[0]) != (out_width, out_height):
+        frame = cv2.resize(frame, (out_width, out_height), interpolation=cv2.INTER_LANCZOS4)
+
+    crop_percent = float(np.clip(crop_percent, 0.0, 45.0))
+    if crop_percent <= 0:
+        return frame
+
+    zoom = 1.0 / max(0.01, 1.0 - crop_percent / 100.0)
+    zoom_width = max(out_width, int(round(out_width * zoom)))
+    zoom_height = max(out_height, int(round(out_height * zoom)))
+    zoomed = cv2.resize(frame, (zoom_width, zoom_height), interpolation=cv2.INTER_LANCZOS4)
+    x = (zoom_width - out_width) // 2
+    y = (zoom_height - out_height) // 2
+    return zoomed[y:y + out_height, x:x + out_width]
+
+
+def start_ffmpeg_writer(args, out_width, out_height, fps):
+    fps = fps if fps and fps > 0 else 30.0
+    cmd = [
+        args.ffmpeg,
+        "-y",
+        "-f", "rawvideo",
+        "-vcodec", "rawvideo",
+        "-pix_fmt", "bgr24",
+        "-s", f"{out_width}x{out_height}",
+        "-r", f"{fps:.6f}",
+        "-i", "-",
+        "-i", args.input,
+        "-map", "0:v:0",
+        "-map", "1:a?",
+        "-c:v", "libx264",
+        "-preset", "slow",
+        "-crf", "18",
+        "-pix_fmt", "yuv420p",
+        "-c:a", "aac",
+        "-b:a", "192k",
+        "-shortest",
+        "-movflags", "+faststart",
+        args.output,
+    ]
+
+    proc = subprocess.Popen(
+        cmd,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+    )
+
+    stderr_chunks = []
+
+    def drain_stderr(pipe):
+        try:
+            for chunk in pipe:
+                stderr_chunks.append(chunk)
+        finally:
+            pipe.close()
+
+    thread = threading.Thread(target=drain_stderr, args=(proc.stderr,), daemon=True)
+    thread.start()
+    return proc, thread, stderr_chunks
+
+
+def finalize_ffmpeg(proc, thread, stderr_chunks):
+    if proc.stdin:
+        proc.stdin.close()
+    proc.wait()
+    thread.join(timeout=10)
+    if proc.returncode != 0:
+        stderr_text = b"".join(stderr_chunks).decode("utf-8", errors="ignore")
+        last_lines = "\n".join(stderr_text.strip().splitlines()[-8:])
+        emit_error(f"FFmpeg encoding failed (exit code {proc.returncode}):\n{last_lines}")
+        return False
+    return True
 
 
 def process_video(args):
-    """Main video processing pipeline"""
-
-    # Open input video
     cap = cv2.VideoCapture(args.input)
     if not cap.isOpened():
         emit_error(f"Failed to open input video: {args.input}")
         return 1
 
-    # Get video properties
     fps = cap.get(cv2.CAP_PROP_FPS)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-    if total_frames == 0:
-        emit_error("Could not determine video frame count")
+    if total_frames <= 1 or width <= 0 or height <= 0:
+        emit_error("Could not determine usable video properties")
+        cap.release()
         return 1
 
-    emit('features', 0, message="Initializing feature detector")
-
-    # Create feature detector
+    emit("features", 0, message="Initializing feature tracker")
     try:
-        detector = create_feature_detector(args.detector)
-    except ValueError as e:
-        emit_error(str(e))
+        create_keypoint_detector(args.detector, args.max_features)
+    except ValueError as exc:
+        emit_error(str(exc))
+        cap.release()
         return 1
 
-    # ============================================================
-    # Pass 1: Extract transforms between consecutive frames
-    # ============================================================
-
-    transforms = []
+    transforms = [np.zeros(4, dtype=np.float64)]
     prev_gray = None
+    previous_valid_motion = np.zeros(4, dtype=np.float64)
     frame_idx = 0
 
-    emit('features', 0, message=f"Detecting features with {args.detector.upper()} ({total_frames} frames)")
+    emit("features", 0, message=f"Tracking camera motion with {args.detector.upper()}")
 
     while True:
         ret, frame = cap.read()
         if not ret:
             break
 
-        # Convert to grayscale
         curr_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        curr_gray = cv2.equalizeHist(curr_gray)
 
         if prev_gray is not None:
-            # Detect and match features
-            pts1, pts2 = detect_and_match_features(
-                prev_gray, curr_gray, detector, args.max_features
-            )
+            prev_pts = detect_tracking_points(prev_gray, args.detector, args.max_features)
+            motion = None
+            inliers = 0
+            total = 0
 
-            if pts1 is not None and pts2 is not None:
-                # Estimate transform
-                transform, inliers = estimate_transform(pts1, pts2, args.transform_type)
+            if prev_pts is not None and len(prev_pts) >= MIN_TRACKS:
+                tracked_prev, tracked_curr = track_points(prev_gray, curr_gray, prev_pts)
+                matrix, inliers, total = estimate_camera_transform(
+                    tracked_prev,
+                    tracked_curr,
+                    args.transform_type,
+                )
+                if matrix is not None:
+                    if args.ecc_refine:
+                        matrix = refine_with_ecc(prev_gray, curr_gray, matrix)
+                    candidate = decompose_affine(matrix)
+                    if valid_motion(candidate, width, height, inliers, total):
+                        motion = candidate
 
-                if transform is not None:
-                    # Decompose to [dx, dy, da]
-                    if args.transform_type == 'affine':
-                        motion = decompose_affine_transform(transform)
-                    else:
-                        # For homography, extract affine approximation
-                        # Use top-left 2x3 submatrix
-                        affine_approx = transform[:2, :]
-                        motion = decompose_affine_transform(affine_approx)
+            if motion is None and args.dense_fallback:
+                dense_motion, dense_inliers, dense_total = farneback_fallback_motion(prev_gray, curr_gray)
+                if dense_motion is not None and valid_motion(dense_motion, width, height, dense_inliers, dense_total):
+                    motion = dense_motion
+                    inliers = dense_inliers
+                    total = dense_total
 
-                    transforms.append(motion)
-                else:
-                    # No transform found - assume no motion
-                    transforms.append(np.array([0.0, 0.0, 0.0]))
+            if motion is None:
+                motion = previous_valid_motion * 0.6
             else:
-                # No features matched - assume no motion
-                transforms.append(np.array([0.0, 0.0, 0.0]))
-        else:
-            # First frame - no previous frame to compare
-            transforms.append(np.array([0.0, 0.0, 0.0]))
+                previous_valid_motion = motion
+
+            transforms.append(motion)
 
         prev_gray = curr_gray
         frame_idx += 1
 
-        # Update progress (0-80%)
         progress = (frame_idx / total_frames) * 80
         if frame_idx % 5 == 0 or frame_idx == total_frames:
-            emit('features', progress, message=f"Frame {frame_idx}/{total_frames} — {len(transforms)} transforms")
+            emit("features", progress, message=f"Frame {frame_idx}/{total_frames} - inliers {inliers}/{total}")
 
     cap.release()
-    emit('features', 80, message=f"Feature detection complete — {len(transforms)} transforms from {total_frames} frames")
 
-    # Convert to numpy array
-    transforms = np.array(transforms)
+    frame_count = len(transforms)
+    if frame_count <= 1:
+        emit_error("No frame motion was detected")
+        return 1
 
-    # Build cumulative trajectory
+    transforms = clamp_transforms(np.array(transforms, dtype=np.float64), width, height)
     trajectory = np.cumsum(transforms, axis=0)
 
-    emit('trajectory', 80, message=f"Computing smooth trajectory (method: {args.smoothing_method})")
-
-    # ============================================================
-    # Pass 2: Smooth the trajectory
-    # ============================================================
-
-    # Convert smoothing strength to appropriate parameters
-    if args.smoothing_method == 'moving_average':
-        smooth_params = {'window': int(args.smoothing_strength)}
-    elif args.smoothing_method == 'savgol':
-        window = int(args.smoothing_strength)
-        # Ensure odd window
-        if window % 2 == 0:
-            window += 1
-        smooth_params = {'window': window, 'polyorder': 3}
-    elif args.smoothing_method == 'gaussian':
-        smooth_params = {'sigma': args.smoothing_strength / 10.0}
-    elif args.smoothing_method == 'spline':
-        smooth_params = {'smoothing_factor': args.smoothing_strength}
-    else:
-        smooth_params = {'window': int(args.smoothing_strength)}
-
-    emit('trajectory', 82, message=f"Applying {args.smoothing_method} smoothing (strength={args.smoothing_strength})")
-
+    emit("trajectory", 80, message=f"Smoothing trajectory with {args.smoothing_method}")
     try:
-        smooth_trajectory = apply_smoothing(trajectory, args.smoothing_method, **smooth_params)
-    except Exception as e:
-        emit_error(f"Smoothing failed: {str(e)}")
-        return 1
-
-    # Calculate correction transforms
-    correction = smooth_trajectory - trajectory
-
-    # Log trajectory statistics
-    max_correction = np.max(np.abs(correction), axis=0)
-    emit('trajectory', 85, message=f"Trajectory smoothed — max correction: dx={max_correction[0]:.1f} dy={max_correction[1]:.1f} da={max_correction[2]:.4f}")
-
-    # ============================================================
-    # Pass 3: Apply stabilization and encode
-    # ============================================================
-
-    # Reopen video for second pass
-    cap = cv2.VideoCapture(args.input)
-
-    # Determine output resolution
-    if args.resolution == '1080p':
-        out_width, out_height = 1920, 1080
-    elif args.resolution == '720p':
-        out_width, out_height = 1280, 720
-    elif args.resolution == '480p':
-        out_width, out_height = 854, 480
-    else:  # source
-        out_width, out_height = width, height
-
-    # Calculate crop to remove black borders
-    crop_percent = args.crop_percent / 100.0
-    crop_w = int(out_width * (1 - crop_percent))
-    crop_h = int(out_height * (1 - crop_percent))
-    crop_x = (out_width - crop_w) // 2
-    crop_y = (out_height - crop_h) // 2
-
-    emit('transform', 85, message=f"Encoding with FFmpeg — output: {crop_w}x{crop_h} @ {fps:.1f}fps")
-
-    # Use FFmpeg to encode (pipe frames in)
-    ffmpeg_cmd = [
-        args.ffmpeg,
-        '-y',
-        '-f', 'rawvideo',
-        '-vcodec', 'rawvideo',
-        '-pix_fmt', 'bgr24',
-        '-s', f'{crop_w}x{crop_h}',
-        '-r', str(fps),
-        '-i', '-',  # Read from stdin
-        '-c:v', 'libx264',
-        '-preset', 'medium',
-        '-crf', '23',
-        '-pix_fmt', 'yuv420p',
-        '-an',  # No audio (raw pipe input has no audio stream)
-        args.output
-    ]
-
-    try:
-        ffmpeg_proc = subprocess.Popen(
-            ffmpeg_cmd,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE
+        smooth_trajectory = apply_smoothing(
+            trajectory,
+            args.smoothing_method,
+            **smoothing_params(args.smoothing_method, args.smoothing_strength, frame_count),
         )
-    except Exception as e:
-        emit_error(f"Failed to start FFmpeg: {str(e)}")
+    except Exception as exc:
+        emit_error(f"Smoothing failed: {exc}")
         return 1
 
-    # Drain FFmpeg stderr in a background thread to prevent pipe buffer deadlock
-    ffmpeg_stderr_lines = []
-    def _drain_stderr(pipe):
-        try:
-            for line in pipe:
-                ffmpeg_stderr_lines.append(line)
-        except Exception:
-            pass
-        finally:
-            pipe.close()
+    correction = smooth_trajectory - trajectory
+    stabilized_transforms = clamp_transforms(transforms + correction, width, height)
+    max_correction = np.max(np.abs(correction), axis=0)
+    emit(
+        "trajectory",
+        85,
+        message=(
+            "Trajectory smoothed - "
+            f"max correction dx={max_correction[0]:.1f} dy={max_correction[1]:.1f} "
+            f"angle={max_correction[2]:.4f}"
+        ),
+    )
 
-    stderr_thread = threading.Thread(target=_drain_stderr, args=(ffmpeg_proc.stderr,), daemon=True)
-    stderr_thread.start()
+    out_width, out_height = output_size(args.resolution, width, height)
+    emit("transform", 85, message=f"Encoding {out_width}x{out_height} at {fps:.1f} fps")
+
+    cap = cv2.VideoCapture(args.input)
+    if not cap.isOpened():
+        emit_error("Failed to reopen video for stabilization")
+        return 1
+
+    try:
+        ffmpeg_proc, stderr_thread, stderr_chunks = start_ffmpeg_writer(args, out_width, out_height, fps)
+    except Exception as exc:
+        cap.release()
+        emit_error(f"Failed to start FFmpeg: {exc}")
+        return 1
 
     frame_idx = 0
-    write_errors = 0
-
     while True:
         ret, frame = cap.read()
         if not ret:
             break
 
-        # Get correction transform for this frame
-        dx, dy, da = correction[frame_idx]
-
-        # Build affine transform matrix
-        transform_matrix = np.array([
-            [np.cos(da), -np.sin(da), dx],
-            [np.sin(da), np.cos(da), dy]
-        ], dtype=np.float32)
-
-        # Apply transform to stabilize
+        motion = stabilized_transforms[min(frame_idx, frame_count - 1)]
+        matrix = build_affine_matrix(motion)
         stabilized = cv2.warpAffine(
             frame,
-            transform_matrix,
+            matrix,
             (width, height),
             flags=cv2.INTER_LINEAR,
-            borderMode=cv2.BORDER_REPLICATE
+            borderMode=cv2.BORDER_REFLECT101,
         )
+        output_frame = resize_and_zoom(stabilized, out_width, out_height, args.crop_percent)
 
-        # Resize if needed
-        if (out_width, out_height) != (width, height):
-            stabilized = cv2.resize(stabilized, (out_width, out_height), interpolation=cv2.INTER_LINEAR)
-
-        # Crop to remove black borders
-        cropped = stabilized[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
-
-        # Write frame to FFmpeg
         try:
-            ffmpeg_proc.stdin.write(cropped.tobytes())
+            ffmpeg_proc.stdin.write(output_frame.tobytes())
         except BrokenPipeError:
+            cap.release()
             emit_error("FFmpeg pipe closed unexpectedly")
-            break
-        except Exception as e:
-            write_errors += 1
-            if write_errors > 5:
-                emit_error(f"Too many write errors: {str(e)}")
-                break
+            return 1
 
         frame_idx += 1
-
-        # Update progress (85-100%)
         progress = 85 + (frame_idx / total_frames) * 15
         if frame_idx % 5 == 0 or frame_idx == total_frames:
-            emit('transform', progress, message=f"Encoding frame {frame_idx}/{total_frames}")
+            emit("transform", progress, message=f"Encoding frame {frame_idx}/{total_frames}")
 
     cap.release()
 
-    # Close FFmpeg stdin and wait for completion
-    emit('transform', 99, message="Finalizing FFmpeg encoding…")
-    ffmpeg_proc.stdin.close()
-    ffmpeg_proc.wait()
-    stderr_thread.join(timeout=10)
-
-    if ffmpeg_proc.returncode != 0:
-        stderr_text = b''.join(ffmpeg_stderr_lines).decode('utf-8', errors='ignore')
-        last_lines = stderr_text.strip().split('\n')[-5:]
-        emit_error(f"FFmpeg encoding failed (exit code {ffmpeg_proc.returncode}):\n{''.join(last_lines)}")
+    emit("transform", 99, message="Finalizing FFmpeg encoding...")
+    if not finalize_ffmpeg(ffmpeg_proc, stderr_thread, stderr_chunks):
         return 1
 
-    emit('transform', 100, message="Stabilization complete")
-
-    # Get output file size
-    output_size = os.path.getsize(args.output) if os.path.exists(args.output) else 0
-
-    # Emit final result
+    emit("transform", 100, message="Stabilization complete")
     result = {
         "ok": True,
-        "outputSize": output_size
+        "outputSize": os.path.getsize(args.output) if os.path.exists(args.output) else 0,
     }
     sys.stdout.write(json.dumps(result) + "\n")
     sys.stdout.flush()
-
     return 0
 
 
 def main():
     parser = argparse.ArgumentParser(description="OpenCV feature tracking stabilization")
-
-    parser.add_argument('--input', required=True, help='Input video file')
-    parser.add_argument('--output', required=True, help='Output video file')
-    parser.add_argument('--ffmpeg', required=True, help='Path to FFmpeg executable')
-    parser.add_argument('--detector', default='sift', choices=['sift', 'orb', 'akaze'],
-                       help='Feature detector type')
-    parser.add_argument('--max-features', type=int, default=2000,
-                       help='Maximum features to detect (500-5000)')
-    parser.add_argument('--transform-type', default='affine', choices=['affine', 'homography'],
-                       help='Transform estimation type')
-    parser.add_argument('--smoothing-method', default='savgol',
-                       choices=['moving_average', 'savgol', 'gaussian', 'spline'],
-                       help='Trajectory smoothing method')
-    parser.add_argument('--smoothing-strength', type=float, default=50,
-                       help='Smoothing strength parameter (10-200)')
-    parser.add_argument('--crop-percent', type=float, default=10,
-                       help='Crop percentage to remove borders (0-20)')
-    parser.add_argument('--resolution', default='source',
-                       choices=['source', '1080p', '720p', '480p'],
-                       help='Output resolution')
+    parser.add_argument("--input", required=True, help="Input video file")
+    parser.add_argument("--output", required=True, help="Output video file")
+    parser.add_argument("--ffmpeg", required=True, help="Path to FFmpeg executable")
+    parser.add_argument(
+        "--detector",
+        default="gftt",
+        choices=["gftt", "sift", "orb", "akaze"],
+        help="Feature detector type",
+    )
+    parser.add_argument("--max-features", type=int, default=3000, help="Maximum features to detect")
+    parser.add_argument(
+        "--transform-type",
+        default="affine",
+        choices=["affine", "homography"],
+        help="Robust transform estimation type",
+    )
+    parser.add_argument(
+        "--smoothing-method",
+        default="savgol",
+        choices=["moving_average", "savgol", "gaussian", "spline"],
+        help="Trajectory smoothing method",
+    )
+    parser.add_argument("--smoothing-strength", type=float, default=70, help="Smoothing strength")
+    parser.add_argument("--crop-percent", type=float, default=10, help="Border crop percentage")
+    parser.add_argument(
+        "--resolution",
+        default="source",
+        choices=["source", "1080p", "720p", "480p"],
+        help="Output resolution",
+    )
+    parser.add_argument(
+        "--no-ecc-refine",
+        dest="ecc_refine",
+        action="store_false",
+        help="Disable ECC refinement after sparse tracking",
+    )
+    parser.add_argument(
+        "--no-dense-fallback",
+        dest="dense_fallback",
+        action="store_false",
+        help="Disable Farneback dense-flow fallback",
+    )
+    parser.set_defaults(ecc_refine=True, dense_fallback=True)
 
     args = parser.parse_args()
 
-    # Validate arguments
     if not os.path.exists(args.input):
         emit_error(f"Input file not found: {args.input}")
         return 1
-
     if not os.path.exists(args.ffmpeg):
         emit_error(f"FFmpeg not found: {args.ffmpeg}")
         return 1
 
     try:
-        sys.exit(process_video(args))
-    except Exception as e:
-        emit_error(f"Unexpected error: {str(e)}")
+        return process_video(args)
+    except Exception as exc:
+        emit_error(f"Unexpected error: {exc}")
         import traceback
+
         traceback.print_exc()
         return 1
 
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    sys.exit(main())

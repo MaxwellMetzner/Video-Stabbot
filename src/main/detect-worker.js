@@ -1,5 +1,5 @@
 /**
- * detect-worker.js — Runs system detection in a Worker thread
+ * detect-worker.js - Runs system detection in a Worker thread
  * so the main process event loop stays responsive during startup.
  */
 const { parentPort } = require('worker_threads');
@@ -9,7 +9,7 @@ const fs = require('fs');
 const os = require('os');
 
 // ============================================================
-// Helpers (copied from main — these use sync APIs which is fine
+// Helpers (copied from main - these use sync APIs which is fine
 // inside a worker because they don't block the main thread)
 // ============================================================
 
@@ -150,29 +150,23 @@ function findPython() {
     return null;
 }
 
-function checkPythonDeps(pythonPath) {
+function checkPythonPackages(pythonPath) {
     try {
-        execFileSync(pythonPath, ['-c', 'import cv2; import numpy'], {
-            encoding: 'utf8',
-            timeout: 10000,
-            stdio: ['pipe', 'pipe', 'pipe'],
-        });
-        return true;
-    } catch {
-        return false;
-    }
-}
+        const script = `
+import importlib.util
+import json
 
-function checkPythonPackage(pythonPath, packageName) {
-    try {
-        execFileSync(pythonPath, ['-c', `import ${packageName}`], {
+packages = ["cv2", "numpy", "scipy", "torch", "torchvision"]
+print(json.dumps({name: importlib.util.find_spec(name) is not None for name in packages}))
+`;
+        const result = execFileSync(pythonPath, ['-c', script], {
             encoding: 'utf8',
-            timeout: 10000,
+            timeout: 5000,
             stdio: ['pipe', 'pipe', 'pipe'],
         });
-        return true;
+        return JSON.parse(result.trim());
     } catch {
-        return false;
+        return {};
     }
 }
 
@@ -216,7 +210,7 @@ function detectEncoder(ffmpegPath) {
 
 (function run() {
     // Step 1: FFmpeg
-    sendStatus('ffmpeg', 'active', 'Looking for FFmpeg\u2026');
+    sendStatus('ffmpeg', 'active', 'Looking for FFmpeg...');
     const ffmpeg = findExecutable('ffmpeg');
     const ffprobe = findExecutable('ffprobe');
     if (!ffmpeg || !ffprobe) {
@@ -250,21 +244,22 @@ function detectEncoder(ffmpegPath) {
     sendStatus('ffmpeg', 'done', 'FFmpeg ready');
 
     // Step 2: Encoder detection
-    sendStatus('encoder', 'active', 'Detecting hardware encoder\u2026');
+    sendStatus('encoder', 'active', 'Detecting hardware encoder...');
     const encoder = detectEncoder(ffmpeg);
     sendStatus('encoder', 'done', `Using ${encoder.name}`);
 
     // Step 3: Python
-    sendStatus('python', 'active', 'Searching for Python\u2026');
+    sendStatus('python', 'active', 'Searching for Python...');
     const python = findPython();
     sendStatus('python', python ? 'done' : 'skipped', python ? 'Python found' : 'Python not found (optional)');
 
     // Step 4: Python packages
-    sendStatus('packages', 'active', 'Checking Python packages\u2026');
-    const hasPythonDeps = python ? checkPythonDeps(python) : false;
-    const hasScipy = python ? checkPythonPackage(python, 'scipy') : false;
-    const hasTorch = python ? checkPythonPackage(python, 'torch') : false;
-    const hasTorchvision = python ? checkPythonPackage(python, 'torchvision') : false;
+    sendStatus('packages', 'active', 'Checking Python packages...');
+    const packages = python ? checkPythonPackages(python) : {};
+    const hasPythonDeps = Boolean(packages.cv2 && packages.numpy);
+    const hasScipy = Boolean(packages.scipy);
+    const hasTorch = Boolean(packages.torch);
+    const hasTorchvision = Boolean(packages.torchvision);
     sendStatus('packages', 'done', 'Package check complete');
 
     // Build RAFT status

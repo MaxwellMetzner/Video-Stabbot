@@ -11,7 +11,7 @@
         <!-- Header -->
         <header>
             <div class="logo">
-                <span class="logo-icon">&#127916;</span>
+                <span class="logo-mark">VS</span>
                 <h1>Video Stabbot</h1>
             </div>
             <div id="encoder-badge" class="badge hidden">
@@ -30,7 +30,7 @@
             <section id="view-loading" class="view active">
                 <div class="view-content centered">
                     <div class="loading-logo">
-                        <span class="loading-logo-icon">&#127916;</span>
+                        <span class="loading-logo-mark">VS</span>
                         <h2 class="loading-title">Video Stabbot</h2>
                     </div>
                     <div class="loading-progress-bar">
@@ -96,19 +96,19 @@
                     </div>
 
                     <div class="quality-grid">
-                        <button class="quality-card card-hq" id="btn-hq">
-                            <span class="card-icon">&#10024;</span>
-                            <h3>High Quality</h3>
-                            <p class="card-desc">Best stabilization, detailed analysis</p>
+                        <button class="quality-card card-quick" id="btn-hq">
+                            <span class="card-icon">Q</span>
+                            <h3>Quick FFmpeg</h3>
+                            <p class="card-desc">Fast two-pass stabilization</p>
                             <ul class="card-details">
-                                <li>Deep motion analysis</li>
-                                <li>Bicubic interpolation</li>
-                                <li>Maximum quality encoding</li>
+                                <li>FFmpeg vidstab pipeline</li>
+                                <li>Bicubic transform</li>
+                                <li>Audio preserved</li>
                             </ul>
                         </button>
 
                         <button class="quality-card card-custom" id="btn-custom">
-                            <span class="card-icon">&#9881;</span>
+                            <span class="card-icon">C</span>
                             <h3>Custom</h3>
                             <p class="card-desc">Full control over every parameter</p>
                             <ul class="card-details">
@@ -123,29 +123,29 @@
 
                     <div class="advanced-grid">
                         <button class="quality-card card-opencv" id="btn-opencv">
-                            <span class="card-icon">&#127919;</span>
+                            <span class="card-icon">O</span>
                             <h3>OpenCV Features</h3>
-                            <p class="card-desc">Feature detection + advanced smoothing</p>
+                            <p class="card-desc">Tracked features + smooth camera path</p>
                             <ul class="card-details">
-                                <li>SIFT/ORB/AKAZE detection</li>
-                                <li>Savitzky-Golay smoothing</li>
-                                <li>Superior quality</li>
+                                <li>Sparse optical flow</li>
+                                <li>RANSAC camera motion</li>
+                                <li>Audio preserved</li>
                             </ul>
                         </button>
 
                         <button class="quality-card card-raft" id="btn-raft">
-                            <span class="card-icon">&#129302;</span>
+                            <span class="card-icon">R</span>
                             <h3>RAFT Deep Learning</h3>
-                            <p class="card-desc">AI-powered dense optical flow</p>
+                            <p class="card-desc">RAFT mesh-flow stabilization</p>
                             <ul class="card-details">
-                                <li>PyTorch neural network</li>
-                                <li>Dense motion estimation</li>
-                                <li>Ultimate quality (slow)</li>
+                                <li>RAFT neural network</li>
+                                <li>Smoothed local mesh paths</li>
+                                <li>Highest quality (slow)</li>
                             </ul>
                         </button>
                     </div>
 
-                    <button id="btn-back" class="btn-text">&larr; Choose a different file</button>
+                    <button id="btn-back" class="btn-text">Choose a different file</button>
                 </div>
             </section>
 
@@ -166,7 +166,7 @@
                                     <span class="radio-dot"></span>
                                     <span class="radio-text">
                                         <strong>Black Fill</strong>
-                                        <span>Gaps filled with black &mdash; clean, cinematic look</span>
+                                        <span>Gaps filled with black - clean, cinematic look</span>
                                     </span>
                                 </label>
                                 <label class="radio-option" data-value="keep">
@@ -183,9 +183,9 @@
                         <div class="setting-group" data-tooltip="Controls trajectory smoothing strength. Higher = smoother camera path but more crop. Lower = keeps more original motion. Range: 1-300">
                             <div class="setting-header">
                                 <label class="setting-label">Smoothing</label>
-                                <input type="number" class="setting-value-input" id="val-smoothing" min="1" max="300" value="30">
+                                <input type="number" class="setting-value-input" id="val-smoothing" min="1" max="300" value="24">
                             </div>
-                            <input type="range" class="slider" id="opt-smoothing" min="1" max="300" value="30">
+                            <input type="range" class="slider" id="opt-smoothing" min="1" max="300" value="24">
                             <div class="slider-labels"><span>Minimal (1)</span><span>Maximum (300)</span></div>
                         </div>
 
@@ -193,9 +193,9 @@
                         <div class="setting-group" data-tooltip="How aggressively to detect camera shake. Higher values detect more shake. Range: 1-10">
                             <div class="setting-header">
                                 <label class="setting-label">Shakiness Detection</label>
-                                <input type="number" class="setting-value-input" id="val-shakiness" min="1" max="10" value="8">
+                                <input type="number" class="setting-value-input" id="val-shakiness" min="1" max="10" value="7">
                             </div>
-                            <input type="range" class="slider" id="opt-shakiness" min="1" max="10" value="8">
+                            <input type="range" class="slider" id="opt-shakiness" min="1" max="10" value="7">
                             <div class="slider-labels"><span>Subtle (1)</span><span>Aggressive (10)</span></div>
                         </div>
 
@@ -203,9 +203,9 @@
                         <div class="setting-group" data-tooltip="Analysis precision for motion detection. Higher is slower but more accurate. Range: 1-15">
                             <div class="setting-header">
                                 <label class="setting-label">Detection Accuracy</label>
-                                <input type="number" class="setting-value-input" id="val-accuracy" min="1" max="15" value="15">
+                                <input type="number" class="setting-value-input" id="val-accuracy" min="1" max="15" value="9">
                             </div>
-                            <input type="range" class="slider" id="opt-accuracy" min="1" max="15" value="15">
+                            <input type="range" class="slider" id="opt-accuracy" min="1" max="15" value="9">
                             <div class="slider-labels"><span>Fast (1)</span><span>Precise (15)</span></div>
                         </div>
 
@@ -244,9 +244,9 @@
                         <div class="setting-group" data-tooltip="Additional zoom percentage. Positive values zoom in, negative values zoom out. Useful for fine-tuning. Range: -50% to +50%">
                             <div class="setting-header">
                                 <label class="setting-label">Manual Zoom</label>
-                                <input type="number" class="setting-value-input" id="val-zoom" min="-50" max="50" value="0">
+                                <input type="number" class="setting-value-input" id="val-zoom" min="-50" max="50" value="2">
                             </div>
-                            <input type="range" class="slider" id="opt-zoom" min="-50" max="50" value="0">
+                            <input type="range" class="slider" id="opt-zoom" min="-50" max="50" value="2">
                             <div class="slider-labels"><span>-50%</span><span>0%</span><span>+50%</span></div>
                         </div>
 
@@ -257,9 +257,9 @@
                             </div>
                             <span class="setting-hint">Pixel interpolation quality when transforming frames.</span>
                             <select class="select-input" id="opt-interpol">
-                                <option value="bilinear">Bilinear &mdash; Good balance</option>
-                                <option value="bicubic" selected>Bicubic &mdash; Highest quality</option>
-                                <option value="linear">Linear &mdash; Fastest</option>
+                                <option value="bilinear">Bilinear - Good balance</option>
+                                <option value="bicubic" selected>Bicubic - Highest quality</option>
+                                <option value="linear">Linear - Fastest</option>
                             </select>
                         </div>
 
@@ -312,7 +312,7 @@
                         </div>
 
                         <!-- Max Angle -->
-                        <div class="setting-group" data-tooltip="Maximum rotation correction in degrees. Prevents warping artifacts on high rotation. 0 = unlimited. Range: 0-45°">
+                        <div class="setting-group" data-tooltip="Maximum rotation correction in degrees. Prevents warping artifacts on high rotation. 0 = unlimited. Range: 0-45 degrees">
                             <div class="setting-header">
                                 <label class="setting-label">Max Rotation</label>
                                 <input type="number" class="setting-value-input" id="val-maxangle" min="0" max="45" value="0" step="1">
@@ -325,9 +325,9 @@
                         <div class="setting-group" data-tooltip="Region size in pixels for motion detection. Smaller = more detail but slower. Larger = faster but less precise. Range: 1-32px">
                             <div class="setting-header">
                                 <label class="setting-label">Step Size</label>
-                                <input type="number" class="setting-value-input" id="val-stepsize" min="1" max="32" value="6">
+                                <input type="number" class="setting-value-input" id="val-stepsize" min="1" max="32" value="8">
                             </div>
-                            <input type="range" class="slider" id="opt-stepsize" min="1" max="32" value="6">
+                            <input type="range" class="slider" id="opt-stepsize" min="1" max="32" value="8">
                             <div class="slider-labels"><span>1 px</span><span>32 px</span></div>
                         </div>
 
@@ -335,9 +335,9 @@
                         <div class="setting-group" data-tooltip="Minimum contrast threshold for motion detection. Regions below this are ignored. Lower values detect more features. Range: 0.0-1.0">
                             <div class="setting-header">
                                 <label class="setting-label">Min Contrast</label>
-                                <input type="number" class="setting-value-input" id="val-mincontrast" min="0" max="1" value="0.25" step="0.01">
+                                <input type="number" class="setting-value-input" id="val-mincontrast" min="0" max="1" value="0.3" step="0.01">
                             </div>
-                            <input type="range" class="slider" id="opt-mincontrast" min="0" max="1" value="0.25" step="0.01">
+                            <input type="range" class="slider" id="opt-mincontrast" min="0" max="1" value="0.3" step="0.01">
                             <div class="slider-labels"><span>0.0</span><span>1.0</span></div>
                         </div>
 
@@ -348,15 +348,15 @@
                             </div>
                             <span class="setting-hint">Trade off between file size and visual quality.</span>
                             <select class="select-input" id="opt-encoding">
-                                <option value="high">High &mdash; Larger file, best quality</option>
-                                <option value="balanced" selected>Balanced &mdash; Recommended</option>
-                                <option value="compressed">Compressed &mdash; Smallest file</option>
+                                <option value="high">High - Larger file, best quality</option>
+                                <option value="balanced" selected>Balanced - Recommended</option>
+                                <option value="compressed">Compressed - Smallest file</option>
                             </select>
                         </div>
                     </div>
 
                     <div class="custom-actions">
-                        <button id="btn-custom-back" class="btn-text">&larr; Back to presets</button>
+                        <button id="btn-custom-back" class="btn-text">Back to modes</button>
                         <button id="btn-custom-start" class="btn-primary">Stabilize Video</button>
                     </div>
                 </div>
@@ -369,30 +369,37 @@
 
                     <div class="settings-scroll">
                         <!-- Feature Detector -->
-                        <div class="setting-group" data-tooltip="SIFT: Best quality, slower. ORB: Fast, good quality. AKAZE: Balanced speed and quality.">
+                        <div class="setting-group" data-tooltip="Auto Track uses grid-distributed Shi-Tomasi corners and Lucas-Kanade optical flow. SIFT, ORB, and AKAZE seed tracks from their own keypoints.">
                             <div class="setting-header">
                                 <label class="setting-label">Feature Detector</label>
                             </div>
                             <div class="radio-group" id="opt-opencv-detector">
-                                <label class="radio-option active" data-value="sift">
+                                <label class="radio-option active" data-value="gftt">
+                                    <span class="radio-dot"></span>
+                                    <span class="radio-text">
+                                        <strong>Auto Track</strong>
+                                        <span>Recommended for most footage</span>
+                                    </span>
+                                </label>
+                                <label class="radio-option" data-value="sift">
                                     <span class="radio-dot"></span>
                                     <span class="radio-text">
                                         <strong>SIFT</strong>
-                                        <span>Scale-Invariant - Best quality, slower</span>
+                                        <span>Scale-invariant keypoints, slower</span>
                                     </span>
                                 </label>
                                 <label class="radio-option" data-value="orb">
                                     <span class="radio-dot"></span>
                                     <span class="radio-text">
                                         <strong>ORB</strong>
-                                        <span>Oriented FAST - Fast processing, good quality</span>
+                                        <span>Oriented FAST keypoints, fast</span>
                                     </span>
                                 </label>
                                 <label class="radio-option" data-value="akaze">
                                     <span class="radio-dot"></span>
                                     <span class="radio-text">
                                         <strong>AKAZE</strong>
-                                        <span>Accelerated KAZE - Balanced speed/quality</span>
+                                        <span>Accelerated KAZE keypoints, balanced</span>
                                     </span>
                                 </label>
                             </div>
@@ -402,9 +409,9 @@
                         <div class="setting-group" data-tooltip="Maximum features to detect per frame. More features = better tracking but slower. Range: 500-5000">
                             <div class="setting-header">
                                 <label class="setting-label">Max Features</label>
-                                <input type="number" class="setting-value-input" id="val-opencv-features" min="500" max="5000" value="2000" step="100">
+                                <input type="number" class="setting-value-input" id="val-opencv-features" min="500" max="5000" value="3000" step="100">
                             </div>
-                            <input type="range" class="slider" id="opt-opencv-features" min="500" max="5000" value="2000" step="100">
+                            <input type="range" class="slider" id="opt-opencv-features" min="500" max="5000" value="3000" step="100">
                             <div class="slider-labels"><span>500</span><span>5000</span></div>
                         </div>
 
@@ -432,7 +439,7 @@
                         </div>
 
                         <!-- Smoothing Method -->
-                        <div class="setting-group" data-tooltip="Algorithm for trajectory smoothing. Savitzky-Golay preserves motion peaks while smoothing jitter.">
+                        <div class="setting-group" data-tooltip="Algorithm for trajectory smoothing. OpenCV also refines transforms with ECC and falls back to dense Farneback flow when sparse tracks are weak.">
                             <div class="setting-header">
                                 <label class="setting-label">Smoothing Method</label>
                             </div>
@@ -448,9 +455,9 @@
                         <div class="setting-group" data-tooltip="Smoothing strength. Higher values = smoother camera path but may remove intentional motion. Range: 10-200">
                             <div class="setting-header">
                                 <label class="setting-label">Smoothing Strength</label>
-                                <input type="number" class="setting-value-input" id="val-opencv-smoothing" min="10" max="200" value="50">
+                                <input type="number" class="setting-value-input" id="val-opencv-smoothing" min="10" max="200" value="70">
                             </div>
-                            <input type="range" class="slider" id="opt-opencv-smoothing" min="10" max="200" value="50">
+                            <input type="range" class="slider" id="opt-opencv-smoothing" min="10" max="200" value="70">
                             <div class="slider-labels"><span>Subtle (10)</span><span>Maximum (200)</span></div>
                         </div>
 
@@ -471,15 +478,15 @@
                             </div>
                             <select class="select-input" id="opt-opencv-resolution">
                                 <option value="source" selected>Source Resolution</option>
-                                <option value="1080p">1920 × 1080</option>
-                                <option value="720p">1280 × 720</option>
-                                <option value="480p">854 × 480</option>
+                                <option value="1080p">1920 x 1080</option>
+                                <option value="720p">1280 x 720</option>
+                                <option value="480p">854 x 480</option>
                             </select>
                         </div>
                     </div>
 
                     <div class="custom-actions">
-                        <button id="btn-opencv-back" class="btn-text">&larr; Back to modes</button>
+                        <button id="btn-opencv-back" class="btn-text">Back to modes</button>
                         <button id="btn-opencv-start" class="btn-primary">Stabilize Video</button>
                     </div>
                 </div>
@@ -518,9 +525,9 @@
                         <div class="setting-group" data-tooltip="Number of RAFT refinement iterations. Higher = better accuracy but slower. Range: 6-20">
                             <div class="setting-header">
                                 <label class="setting-label">Refinement Iterations</label>
-                                <input type="number" class="setting-value-input" id="val-raft-iterations" min="6" max="20" value="12" step="1">
+                                <input type="number" class="setting-value-input" id="val-raft-iterations" min="6" max="20" value="20" step="1">
                             </div>
-                            <input type="range" class="slider" id="opt-raft-iterations" min="6" max="20" value="12" step="1">
+                            <input type="range" class="slider" id="opt-raft-iterations" min="6" max="20" value="20" step="1">
                             <div class="slider-labels"><span>Fast (6)</span><span>Accurate (20)</span></div>
                         </div>
 
@@ -541,9 +548,9 @@
                         <div class="setting-group" data-tooltip="Trajectory smoothing strength. Higher = smoother but less responsive to real motion. Range: 10-100">
                             <div class="setting-header">
                                 <label class="setting-label">Smoothing Strength</label>
-                                <input type="number" class="setting-value-input" id="val-raft-smoothing" min="10" max="100" value="30" step="5">
+                                <input type="number" class="setting-value-input" id="val-raft-smoothing" min="10" max="100" value="60" step="5">
                             </div>
-                            <input type="range" class="slider" id="opt-raft-smoothing" min="10" max="100" value="30" step="5">
+                            <input type="range" class="slider" id="opt-raft-smoothing" min="10" max="100" value="60" step="5">
                             <div class="slider-labels"><span>Minimal (10)</span><span>Maximum (100)</span></div>
                         </div>
 
@@ -564,20 +571,20 @@
                             </div>
                             <select class="select-input" id="opt-raft-resolution">
                                 <option value="source" selected>Source Resolution</option>
-                                <option value="1080p">1920 × 1080</option>
-                                <option value="720p">1280 × 720</option>
-                                <option value="480p">854 × 480</option>
+                                <option value="1080p">1920 x 1080</option>
+                                <option value="720p">1280 x 720</option>
+                                <option value="480p">854 x 480</option>
                             </select>
                         </div>
 
                         <!-- Performance Warning -->
                         <div class="info-box">
-                            <strong>⚠️ Performance Note:</strong> RAFT uses deep learning and requires significant computing power. Processing may be slow on CPU. GPU (CUDA) highly recommended.
+                            <strong>Performance Note:</strong> RAFT now uses dense flow plus mesh-path smoothing. It is intended to be the slowest, highest-quality mode. GPU (CUDA) is highly recommended.
                         </div>
                     </div>
 
                     <div class="custom-actions">
-                        <button id="btn-raft-back" class="btn-text">&larr; Back to modes</button>
+                        <button id="btn-raft-back" class="btn-text">Back to modes</button>
                         <button id="btn-raft-start" class="btn-primary">Stabilize Video</button>
                     </div>
                 </div>
@@ -610,7 +617,7 @@
             <!-- Complete View -->
             <section id="view-complete" class="view">
                 <div class="view-content centered">
-                    <div class="icon-circle icon-success">&#10003;</div>
+                    <div class="icon-circle icon-success">OK</div>
                     <h2>Stabilization Complete</h2>
                     <div class="results-grid">
                         <div class="result-row">

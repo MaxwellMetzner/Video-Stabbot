@@ -1,5 +1,5 @@
 /* ============================================================
-   Video Stabbot — Styles
+   Video Stabbot - Styles
    ============================================================ */
 
 :root {
@@ -80,9 +80,18 @@ header {
     gap: 10px;
 }
 
-.logo-icon {
-    font-size: 22px;
-    line-height: 1;
+.logo-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0;
 }
 
 .logo h1 {
@@ -263,9 +272,18 @@ h2 {
     margin-bottom: 8px;
 }
 
-.loading-logo-icon {
-    font-size: 48px;
-    line-height: 1;
+.loading-logo-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0;
     animation: loadingPulse 2s ease-in-out infinite;
 }
 
@@ -490,7 +508,7 @@ h2 {
 
 .quality-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
     margin-bottom: 24px;
 }
@@ -520,10 +538,10 @@ h2 {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--quick-accent), 0 0 24px var(--quick-glow);
 }
 
-.quality-card.card-hq:hover,
-.quality-card.card-hq:focus-visible {
-    border-color: var(--hq-accent);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--hq-accent), 0 0 24px var(--hq-glow);
+.quality-card.card-quick:hover,
+.quality-card.card-quick:focus-visible {
+    border-color: var(--quick-accent);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--quick-accent), 0 0 24px var(--quick-glow);
 }
 
 .quality-card.card-custom:hover,
@@ -597,7 +615,15 @@ h2 {
 }
 
 .card-icon {
-    font-size: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    font-size: 14px;
+    font-weight: 700;
     margin-bottom: 8px;
     line-height: 1;
 }
@@ -622,7 +648,7 @@ h2 {
 }
 
 .card-details li::before {
-    content: '·  ';
+    content: '- ';
     color: var(--text-muted);
 }
 

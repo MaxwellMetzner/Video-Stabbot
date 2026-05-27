@@ -61,12 +61,17 @@ def smooth_savitzky_golay(trajectory, window, polyorder=3):
     Returns:
         Smoothed trajectory array
     """
-    # Ensure window is odd and valid
+    n_points = trajectory.shape[0]
+    if n_points < 5:
+        return np.copy(trajectory).astype(np.float64)
+
+    # Ensure window is odd and valid for the clip length.
     window = max(5, int(window))
+    window = min(window, n_points if n_points % 2 == 1 else n_points - 1)
     if window % 2 == 0:
         window += 1
 
-    # Ensure polyorder is valid
+    # Ensure polyorder is valid.
     polyorder = min(polyorder, window - 1)
 
     smoothed = np.copy(trajectory).astype(np.float64)
@@ -125,6 +130,9 @@ def smooth_spline(trajectory, smoothing_factor=None):
         Smoothed trajectory array
     """
     n_points = trajectory.shape[0]
+    if n_points < 4:
+        return np.copy(trajectory).astype(np.float64)
+
     x = np.arange(n_points)
     smoothed = np.copy(trajectory).astype(np.float64)
 
@@ -231,4 +239,4 @@ if __name__ == '__main__':
         assert smoothed.std(axis=0).mean() < trajectory.std(axis=0).mean(), \
             f"{method} did not reduce variance"
 
-    print("\n✓ All smoothing methods working correctly!")
+    print("\nAll smoothing methods working correctly.")

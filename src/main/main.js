@@ -16,20 +16,6 @@ let cancelled = false;
 // System Detection
 // ============================================================
 
-function findExecutable(name) {
-    try {
-        const cmd = process.platform === 'win32' ? 'where' : 'which';
-        const result = execSync(`${cmd} ${name}`, {
-            encoding: 'utf8',
-            timeout: 5000,
-            stdio: ['pipe', 'pipe', 'pipe'],
-        });
-        return result.trim().split(/\r?\n/)[0].trim();
-    } catch {
-        return null;
-    }
-}
-
 function findPython() {
     // Try to find all Python installations (where/which returns multiple results)
     const candidateNames = process.platform === 'win32'
@@ -80,7 +66,7 @@ function findPython() {
                                 continue;
                             }
                         } catch {
-                            // Not a real Python — skip this WindowsApps path
+                            // Not a real Python - skip this WindowsApps path
                             continue;
                         }
                     }
@@ -162,32 +148,6 @@ function findPython() {
     return null;
 }
 
-function checkPythonDeps(pythonPath) {
-    try {
-        execFileSync(pythonPath, ['-c', 'import cv2; import numpy'], {
-            encoding: 'utf8',
-            timeout: 10000,
-            stdio: ['pipe', 'pipe', 'pipe'],
-        });
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-function checkPythonPackage(pythonPath, packageName) {
-    try {
-        execFileSync(pythonPath, ['-c', `import ${packageName}`], {
-            encoding: 'utf8',
-            timeout: 10000,
-            stdio: ['pipe', 'pipe', 'pipe'],
-        });
-        return true;
-    } catch {
-        return false;
-    }
-}
-
 function checkVidstabSupport(ffmpegPath) {
     try {
         const result = execFileSync(ffmpegPath, ['-filters'], {
@@ -264,20 +224,22 @@ function getVideoInfo(ffprobePath, filePath) {
 // ============================================================
 
 const PRESETS = {
-    highQuality: {
-        shakiness: 10,
-        accuracy: 15,
-        smoothing: 30,
+    quick: {
+        shakiness: 7,
+        accuracy: 9,
+        smoothing: 24,
         interpol: 'bicubic',
         optzoom: 1,
-        zoom: 0,
+        zoom: 2,
+        stepsize: 8,
+        mincontrast: 0.3,
         crop: 'black',
         encoding: {
-            software: ['-preset', 'slow', '-crf', '18'],
-            nvenc: ['-preset', 'p7', '-rc', 'vbr', '-b:v', '8M', '-maxrate', '12M', '-bufsize', '16M'],
-            qsv: ['-preset', 'veryslow', '-global_quality', '18'],
-            amf: ['-usage', 'transcoding', '-rc', 'vbr_peak', '-b:v', '8M'],
-            videotoolbox: ['-b:v', '8M'],
+            software: ['-preset', 'medium', '-crf', '20'],
+            nvenc: ['-preset', 'p4', '-rc', 'vbr', '-b:v', '7M', '-maxrate', '10M', '-bufsize', '14M'],
+            qsv: ['-preset', 'medium', '-global_quality', '20'],
+            amf: ['-usage', 'transcoding', '-rc', 'vbr_peak', '-b:v', '7M'],
+            videotoolbox: ['-b:v', '7M'],
         },
     },
 };
@@ -314,20 +276,20 @@ function buildCustomPreset(settings, encoder) {
     const encQuality = settings.encoding || 'balanced';
     const encPreset = ENCODING_PRESETS[encQuality] || ENCODING_PRESETS.balanced;
     return {
-        shakiness: clamp(settings.shakiness ?? 8, 1, 10),
-        accuracy: clamp(settings.accuracy ?? 15, 1, 15),
-        smoothing: clamp(settings.smoothing ?? 30, 1, 300),
+        shakiness: clamp(settings.shakiness ?? 7, 1, 10),
+        accuracy: clamp(settings.accuracy ?? 9, 1, 15),
+        smoothing: clamp(settings.smoothing ?? 24, 1, 300),
         interpol: ['linear', 'bilinear', 'bicubic'].includes(settings.interpol) ? settings.interpol : 'bicubic',
         optzoom: clamp(settings.optzoom ?? 1, 0, 2),
-        zoom: clamp(settings.zoom ?? 0, -50, 50),
+        zoom: clamp(settings.zoom ?? 2, -50, 50),
         zoomspeed: clamp(settings.zoomspeed ?? 0.25, 0, 5),
         crop: settings.crop === 'keep' ? 'keep' : 'black',
         tripod: settings.tripod ? 1 : 0,
         relative: settings.relative ? 1 : 0,
         maxshift: clamp(settings.maxshift ?? 0, 0, 500),
         maxangle: settings.maxangle ?? 0,
-        stepsize: clamp(settings.stepsize ?? 6, 1, 32),
-        mincontrast: clamp(settings.mincontrast ?? 0.25, 0, 1),
+        stepsize: clamp(settings.stepsize ?? 8, 1, 32),
+        mincontrast: clamp(settings.mincontrast ?? 0.3, 0, 1),
         encoding: encPreset,
     };
 }
@@ -439,15 +401,19 @@ function stabilize(ffmpegPath, input, output, mode, encoder, duration, event, cu
             if (preset.zoomspeed !== undefined && preset.zoomspeed > 0) filter += `:zoomspeed=${preset.zoomspeed}`;
             if (preset.maxshift > 0) filter += `:maxshift=${preset.maxshift}`;
             if (preset.maxangle > 0) filter += `:maxangle=${(preset.maxangle * Math.PI / 180).toFixed(4)}`;
+            const videoFilter = `${filter},unsharp=5:5:0.8:3:3:0.4`;
 
             const transformArgs = [
                 '-y', '-i', input,
-                '-vf', filter,
+                '-map', '0:v:0',
+                '-map', '0:a?',
+                '-vf', videoFilter,
                 '-c:v', encoder.id,
                 ...encFlags,
                 '-pix_fmt', 'yuv420p',
                 '-c:a', 'aac', '-b:a', '192k',
                 '-threads', '0',
+                '-movflags', '+faststart',
                 output,
             ];
 
@@ -644,9 +610,9 @@ function runPythonScript(pythonPath, scriptPath, args, duration, event) {
                 try {
                     const msg = JSON.parse(line);
                     if (msg.ok) {
-                        // Final result line — store for close handler
+                        // Final result line - store for close handler
                         proc._resultJSON = msg;
-                        if (DEBUG) console.log('[python] ✓ Script completed successfully');
+                        if (DEBUG) console.log('[python] Script completed successfully');
                     } else if (msg.phase !== undefined || msg.progress !== undefined) {
                         if (DEBUG) {
                             const pct = (msg.progress || 0).toFixed(1);
@@ -689,8 +655,8 @@ function runPythonScript(pythonPath, scriptPath, args, duration, event) {
                 errorMsg =
                     'Python installation not found or not working.\n\n' +
                     'Common causes:\n' +
-                    '• Windows Store Python stub detected (not a real installation)\n' +
-                    '• Python not installed or not in system PATH\n\n' +
+                    '* Windows Store Python stub detected (not a real installation)\n' +
+                    '* Python not installed or not in system PATH\n\n' +
                     'Solution:\n' +
                     '1. Install Python from python.org (not Microsoft Store)\n' +
                     '2. During installation, check "Add Python to PATH"\n' +

@@ -1,5 +1,5 @@
 // ============================================================
-// Video Stabbot — Renderer
+// Video Stabbot - Renderer
 // ============================================================
 
 // State
@@ -75,10 +75,10 @@ function updateBadges(system) {
     const opencvBtn = document.getElementById('btn-opencv');
     const raftBtn = document.getElementById('btn-raft');
 
-    // OpenCV requires scipy
-    if (!system.hasScipy) {
+    // OpenCV requires cv2, numpy, and scipy.
+    if (!system.hasPythonDeps || !system.hasScipy) {
         opencvBtn.classList.add('disabled');
-        opencvBtn.title = 'Requires Python + SciPy\nInstall with: pip install scipy';
+        opencvBtn.title = 'Requires Python + OpenCV + NumPy + SciPy\nInstall with: pip install opencv-python numpy scipy';
         opencvBtn.style.pointerEvents = 'none';
         opencvBtn.style.opacity = '0.5';
     } else {
@@ -126,7 +126,7 @@ async function handleRAFT() {
 
     outputPath = savePath;
     showView('processing');
-    resetProcessingView('Loading RAFT model\u2026');
+    resetProcessingView('Loading RAFT model...');
     startElapsed();
 
     window.stabbot.onProgress(data => updateProgress(data));
@@ -198,11 +198,11 @@ function updateFileInfo() {
     document.getElementById('file-name').textContent = name;
 
     const parts = [];
-    if (videoInfo.width && videoInfo.height) parts.push(`${videoInfo.width}×${videoInfo.height}`);
+    if (videoInfo.width && videoInfo.height) parts.push(`${videoInfo.width}x${videoInfo.height}`);
     if (videoInfo.fps) parts.push(`${videoInfo.fps} fps`);
     if (videoInfo.duration) parts.push(formatDuration(videoInfo.duration));
     if (videoInfo.size) parts.push(formatSize(videoInfo.size));
-    document.getElementById('file-meta').textContent = parts.join('  •  ');
+    document.getElementById('file-meta').textContent = parts.join('  |  ');
 }
 
 // ============================================================
@@ -267,7 +267,7 @@ async function handleOpenCV() {
 
     outputPath = savePath;
     showView('processing');
-    resetProcessingView('Detecting features\u2026');
+    resetProcessingView('Detecting features...');
     startElapsed();
 
     window.stabbot.onProgress(data => updateProgress(data));
@@ -313,7 +313,7 @@ function resetProcessingView(label) {
     document.getElementById('progress-bar').style.width = '0%';
     document.getElementById('progress-percent').textContent = '0%';
     document.getElementById('progress-elapsed').textContent = '0:00';
-    document.getElementById('phase-label').textContent = label || 'Analyzing motion\u2026';
+    document.getElementById('phase-label').textContent = label || 'Analyzing motion...';
 }
 
 function updateProgress(data) {
@@ -322,13 +322,13 @@ function updateProgress(data) {
     document.getElementById('progress-percent').textContent = `${overall}%`;
 
     const labels = {
-        detect: 'Analyzing motion\u2026',
-        transform: 'Stabilizing video\u2026',
-        features: 'Detecting features\u2026',
-        trajectory: 'Smoothing trajectory\u2026',
-        loading: 'Loading AI model\u2026',
-        flow: 'Estimating optical flow\u2026',
-        processing: 'Processing\u2026',
+        detect: 'Analyzing motion...',
+        transform: 'Stabilizing video...',
+        features: 'Detecting features...',
+        trajectory: 'Smoothing trajectory...',
+        loading: 'Loading AI model...',
+        flow: 'Estimating optical flow...',
+        processing: 'Processing...',
     };
     if (data.phase && labels[data.phase]) {
         document.getElementById('phase-label').textContent = labels[data.phase];
@@ -531,7 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Quality cards
-    document.getElementById('btn-hq').addEventListener('click', () => handleQualityChoice('highQuality'));
+    document.getElementById('btn-hq').addEventListener('click', () => handleQualityChoice('quick'));
     document.getElementById('btn-custom').addEventListener('click', () => showView('custom'));
     document.getElementById('btn-opencv').addEventListener('click', () => showView('opencv'));
 

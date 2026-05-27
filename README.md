@@ -1,74 +1,88 @@
 # Video Stabbot
 
-Professional video stabilization application with advanced motion analysis and AI-powered techniques.
+Desktop video stabilization for quick fixes, manual FFmpeg tuning, OpenCV feature tracking, and RAFT dense optical flow.
 
 ## Description
 
-Video Stabbot is a desktop video stabilization application built with Electron. It provides a polished dark-themed UI for stabilizing shaky video footage using multiple cutting-edge technologies: FFmpeg's vidstab filters, OpenCV feature tracking, and RAFT deep learning optical flow.
+Video Stabbot is an Electron app for stabilizing shaky footage from a single interface. It combines FFmpeg vidstab, OpenCV sparse optical-flow tracking, and RAFT dense optical flow so users can choose between speed, control, and maximum motion-analysis quality.
+
+## Screenshots
+
+![File selection](./screenshot-file-selection.png)
+![Mode selection](./screenshot-mode-selection.png)
+![Custom settings](./screenshot-custom-settings.png)
+![Processing](./screenshot-processing.png)
 
 ## Features
 
 ### FFmpeg Modes
 
-- **High Quality Mode** — Maximum analysis depth and smoothing using FFmpeg vidstab for excellent results
+- **Quick FFmpeg Mode** - Fast two-pass stabilization using FFmpeg vidstab with bicubic transforms, recommended sharpening, optional audio mapping, and practical defaults.
 
-- **Custom Mode** — Full manual control over all vidstab parameters:
-  - Border crop mode, smoothing strength (1-300), shakiness detection
+- **Custom Mode** - Full manual control over vidstab parameters:
+  - Border mode, smoothing strength, shakiness detection
   - Accuracy, auto/manual zoom, zoom speed, interpolation method
   - Tripod mode, relative transforms, max shift, max rotation
   - Step size, minimum contrast, encoding quality
 
 ### Advanced Stabilization Modes
 
-- **OpenCV Feature Tracking** (requires Python + SciPy) — Feature-based stabilization with advanced trajectory smoothing
-  - SIFT/ORB/AKAZE feature detection algorithms
-  - Affine or homography transform estimation
-  - Multiple smoothing methods: Savitzky-Golay, Gaussian, Moving Average, Cubic Spline
-  - Configurable smoothing strength, crop percentage, and resolution
+- **OpenCV Feature Tracking** (requires Python, OpenCV, NumPy, and SciPy) - Sparse optical-flow stabilization with robust trajectory smoothing.
+  - Auto Track mode uses Shi-Tomasi corners and pyramidal Lucas-Kanade tracking.
+  - Features are distributed across a grid so motion estimates do not overfit one textured area.
+  - SIFT, ORB, and AKAZE can seed tracking points when preferred.
+  - Forward/backward track validation rejects unstable points.
+  - ECC refinement improves the tracked transform when image alignment converges.
+  - Farneback dense optical flow is used as a fallback when sparse tracks are weak.
+  - RANSAC estimates camera motion while rejecting moving-object outliers.
+  - Output keeps the selected resolution and muxes source audio.
 
-- **RAFT Deep Learning** (requires PyTorch) — AI-powered dense optical flow for ultimate stabilization quality
-  - Uses RAFT neural network for dense motion estimation
-  - RAFT-Sintel (natural videos) or RAFT-Things (general) model variants
-  - Configurable refinement iterations (6-20)
-  - Advanced trajectory smoothing with multiple algorithms
-  - GPU acceleration support (CUDA highly recommended)
-  - Best quality but slowest processing
+- **RAFT Deep Learning** (requires PyTorch and torchvision) - Dense mesh-flow stabilization for hard footage.
+  - Uses torchvision RAFT large weights for Sintel-style or Things-style motion.
+  - Uses a 7 x 9 local mesh by default instead of only one global camera path.
+  - Smooths local mesh trajectories to reduce parallax and rolling local jitter.
+  - Automatically caps analysis resolution for practical memory use.
+  - Converts dense flow to robust global camera motion with RANSAC.
+  - Falls back to sparse tracking when dense flow is unreliable.
+  - Output keeps the selected resolution and muxes source audio.
 
 ### General Features
 
-- **GPU Acceleration** — Auto-detects NVIDIA NVENC, Intel QSV, AMD AMF, or Apple VideoToolbox; falls back to CPU (libx264)
-- **Smart Dependency Detection** — Advanced modes appear grayed out with tooltip explanations when prerequisites are missing
-- **Drag-and-drop or file-picker** — Easy video input
-- **Real-time progress tracking** — Phase labels, progress bar, and elapsed time
-- **Tooltips** — Hover over any setting for detailed explanations
-- **Bidirectional slider/input controls** — Type values manually or use sliders
+- **Faster startup checks** - Python packages are probed in one lightweight pass instead of importing each dependency.
+- **GPU acceleration** - Auto-detects NVIDIA NVENC, Intel QSV, AMD AMF, or Apple VideoToolbox; falls back to CPU libx264.
+- **Smart dependency detection** - Advanced modes appear disabled with tooltip explanations when prerequisites are missing.
+- **Drag-and-drop or file picker** - Easy video input.
+- **Real-time progress tracking** - Phase labels, progress bar, and elapsed time.
+- **Tooltips** - Hover over any setting for detailed explanations.
+- **Bidirectional slider/input controls** - Type values manually or use sliders.
 
 ## Prerequisites
 
 ### Core Requirements
 
-- **Node.js** (v18 or later) — https://nodejs.org
-- **FFmpeg** with **libvidstab** support — must be on your system PATH
+- **Node.js** v18 or later - https://nodejs.org
+- **FFmpeg** with **libvidstab** support - must be on your system PATH
   - Download from https://ffmpeg.org/download.html
-  - Verify: `ffmpeg -filters | findstr vidstab` (Windows) or `ffmpeg -filters | grep vidstab` (macOS/Linux)
+  - Verify: `ffmpeg -filters | findstr vidstab` on Windows or `ffmpeg -filters | grep vidstab` on macOS/Linux
 
 ### Optional: Advanced Modes
 
 #### OpenCV Feature Tracking Mode
 
-- **Python 3.8+** — on your system PATH
+- **Python 3.8+** on your system PATH
 - **Required packages**:
+
   ```bash
   pip install opencv-python numpy scipy
   ```
 
 #### RAFT Deep Learning Mode
 
-- **Python 3.8+** — on your system PATH
-- **PyTorch and torchvision** (large install ~2-4GB):
+- **Python 3.8+** on your system PATH
+- **PyTorch and torchvision**:
 
   ```bash
-  # GPU version (NVIDIA CUDA) - highly recommended
+  # GPU version for NVIDIA CUDA
   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
 
   # CPU-only version
@@ -81,19 +95,14 @@ Video Stabbot is a desktop video stabilization application built with Electron. 
   pip install opencv-python numpy scipy
   ```
 
-- **Note**: First run will auto-download the RAFT model (~250MB). GPU strongly recommended for acceptable performance.
+First RAFT run may download model weights. GPU is strongly recommended.
 
 ## Setup
 
 ```bash
-# Clone the repository
 git clone <repo-url>
 cd Video-Stabbot
-
-# Install Node dependencies
 npm install
-
-# Install Python dependencies (for advanced modes)
 pip install -r requirements.txt
 ```
 
@@ -103,99 +112,93 @@ pip install -r requirements.txt
 npm start
 ```
 
-This launches the Electron app. From there:
+From the app:
 
-1. **Select a video** — Drag onto the drop zone or click to browse
-2. **Choose a stabilization mode**:
-   - FFmpeg modes: High Quality or Custom
-   - Advanced modes (if dependencies installed): OpenCV Features or RAFT Deep Learning
-3. **Configure settings** — Each mode has its own settings view with tooltips
-4. **Pick a save location** — Choose where to save the stabilized video
-5. **Wait for processing** — Progress bar shows current phase and elapsed time
-6. **View result** — Open output folder or process another video
+1. **Select a video** - Drag onto the drop zone or click to browse.
+2. **Choose a stabilization mode** - Quick FFmpeg, Custom, OpenCV Features, or RAFT Deep Learning.
+3. **Configure settings** - Each advanced mode has its own settings view with tooltips.
+4. **Pick a save location** - Choose where to save the stabilized video.
+5. **Wait for processing** - Progress shows the current phase and elapsed time.
+6. **View result** - Open the output folder or process another video.
 
 ## Project Structure
 
-```
+```text
 Video-Stabbot/
-├── package.json              NPM project config
-├── requirements.txt          Python dependencies for advanced modes
-├── .gitignore
-├── README.md                 This file
-├── src/
-│   ├── main/
-│   │   ├── main.js           Electron main process (system detection, processing)
-│   │   └── preload.js        Secure IPC bridge
-│   └── renderer/
-│       ├── index.html        Application UI (all views)
-│       ├── renderer.js       Frontend logic (settings, progress, handlers)
-│       └── styles.css        Dark theme with tooltips
-└── scripts/
-    ├── smoothing_lib.py      Shared trajectory smoothing library (SciPy-based)
-    ├── opencv_feature_tracking.py    SIFT/ORB/AKAZE feature-based stabilization
-    └── raft_dense_motion.py          RAFT deep learning stabilization
+|-- package.json
+|-- requirements.txt
+|-- README.md
+|-- screenshot-file-selection.png
+|-- screenshot-mode-selection.png
+|-- screenshot-custom-settings.png
+|-- screenshot-processing.png
+|-- src/
+|   |-- main/
+|   |   |-- main.js
+|   |   |-- detect-worker.js
+|   |   `-- preload.js
+|   `-- renderer/
+|       |-- index.html
+|       |-- renderer.js
+|       `-- styles.css
+`-- scripts/
+    |-- smoothing_lib.py
+    |-- opencv_feature_tracking.py
+    `-- raft_dense_motion.py
 ```
 
 ## Mode Comparison
 
 | Mode | Speed | Quality | Requirements | Best For |
-| ------ | ------- | --------- | -------------- | ---------- |
-| **High Quality** | Fast | Good | FFmpeg only | General use, quick results |
-| **Custom** | Fast | Good-Excellent | FFmpeg only | Fine-tuning parameters |
-| **OpenCV Features** | Medium | Excellent | Python + SciPy | Complex motion, superior quality |
-| **RAFT Deep Learning** | Slow | Ultimate | Python + PyTorch + GPU | Maximum quality (time permitting) |
+| --- | --- | --- | --- | --- |
+| **Quick FFmpeg** | Fast | Good | FFmpeg only | General use and quick results |
+| **Custom** | Fast to medium | Good to excellent | FFmpeg only | Fine-tuning vidstab parameters |
+| **OpenCV Features** | Medium | Excellent | Python, OpenCV, NumPy, SciPy | Complex handheld motion and CPU-friendly quality |
+| **RAFT Deep Learning** | Very slow | Highest | Python, PyTorch, torchvision, SciPy | Difficult footage where processing time is acceptable |
 
 ## Troubleshooting
 
-### Advanced modes are grayed out
+### Advanced modes are disabled
 
-- **OpenCV**: Install `pip install scipy` — required for trajectory smoothing
-- **RAFT**: Install `pip install torch torchvision opencv-python numpy scipy` — hover over the grayed-out button for specific missing packages
+- **OpenCV**: Install `pip install opencv-python numpy scipy`.
+- **RAFT**: Install `pip install torch torchvision opencv-python numpy scipy`.
+- Hover over the disabled mode tile for the specific missing dependency.
 
 ### RAFT mode is very slow
 
-- RAFT requires significant computing power
-- Install PyTorch with CUDA support for GPU acceleration
-- Reduce refinement iterations (6 instead of 12) for faster processing
-- Consider using OpenCV mode instead for CPU-only systems
+- Install PyTorch with CUDA support for GPU acceleration.
+- Reduce refinement iterations only when speed matters more than quality.
+- Use OpenCV mode on CPU-only systems when speed matters.
 
 ### FFmpeg vidstab filters not found
 
-- Download FFmpeg build with libvidstab support
-- Verify: run `ffmpeg -filters | grep vidstab` in terminal
-- Windows users: try builds from https://www.gyan.dev/ffmpeg/builds/
+- Download an FFmpeg build with libvidstab support.
+- Verify with `ffmpeg -filters | grep vidstab`.
+- Windows users can try builds from https://www.gyan.dev/ffmpeg/builds/.
 
 ## Building a Distributable
 
-To package the app as a standalone Windows executable (no console window):
+To package the app as a standalone Windows executable:
 
 ```bash
-# Build Windows release artifacts
 npm run dist:win
 ```
 
 Output files are created in `dist/`:
 
-- `video-stabbot Setup <version>.exe` (installer)
-- `video-stabbot <version>.exe` (portable single executable, if generated)
-
-You can double-click either executable to launch the app directly.
+- `video-stabbot Setup <version>.exe`
+- `video-stabbot <version>.exe` if the portable target is generated
 
 Optional build commands:
 
 ```bash
-# Build unpacked app folder (quick local packaging test)
 npm run pack
-
-# Build all configured targets
 npm run dist
 ```
 
-**Note**: Python dependencies (scipy, torch) must be installed separately by end users for advanced modes to work.
+Python dependencies must still be installed separately by end users for advanced modes.
 
-## GitHub + Releases Workflow
-
-### What goes in GitHub (commit these)
+## GitHub and Releases Workflow
 
 Commit source and project metadata only:
 
@@ -205,68 +208,31 @@ Commit source and project metadata only:
 - `package-lock.json`
 - `requirements.txt`
 - `README.md`
+- screenshot pngs or other intentional assets
 - `.gitignore`
-- Any icons/assets/config files you intentionally add for packaging
 
-Do **not** commit generated build artifacts (`dist/`, unpacked app folders, installers, portable exes).
+Do not commit generated build artifacts such as `dist/`, installers, portable executables, or unpacked app folders.
 
-### What to upload under GitHub Releases
+After running `npm run dist:win`, upload release artifacts from `dist/`:
 
-After running `npm run dist:win`, upload these files from `dist/` to the release:
+- `video-stabbot Setup <version>.exe`
+- `video-stabbot <version>.exe` if generated
 
-- `video-stabbot Setup <version>.exe` (recommended for most users)
-- `video-stabbot <version>.exe` (portable build, if generated)
+Recommended release steps on Windows:
 
-Optional:
-
-- `latest.yml` and `.blockmap` files only if you later add auto-update support
-
-Do not upload `win-unpacked/` (developer/debug artifact, very large, not needed by end users).
-
-### Recommended release steps (Windows)
-
-1. Update version in `package.json` (example: `2.0.1`)
-2. Commit and push changes:
-
-  ```bash
-  git add .
-  git commit -m "Release v2.0.1"
-  git push
-  ```
-
-3. Build release artifacts:
-
-  ```bash
-  npm run dist:win
-  ```
-
-4. Create and push tag:
-
-  ```bash
-  git tag v2.0.1
-  git push origin v2.0.1
-  ```
-
-5. In GitHub: **Releases** → **Draft a new release**
-  - Tag: `v2.0.1`
-  - Title: `Video Stabbot v2.0.1`
-  - Upload the `.exe` asset(s) from `dist/`
-  - Publish release
-
-### End-user install guidance
-
-- Most users should download the `Setup` exe and install normally.
-- Users who prefer no installation can use the portable exe.
-- Advanced modes still require local Python + packages (`opencv-python`, `numpy`, `scipy`, and for RAFT: `torch`, `torchvision`).
+1. Update version in `package.json`.
+2. Commit and push changes.
+3. Build release artifacts with `npm run dist:win`.
+4. Create and push a tag such as `v2.0.1`.
+5. Draft a GitHub release for that tag and upload the `.exe` assets.
 
 ## License
 
-MIT License - see LICENSE file for details
+MIT License - see LICENSE file for details.
 
 ## Acknowledgments
 
-- FFmpeg vidstab filters for core stabilization
-- OpenCV for feature detection and tracking
-- Gyroflow for gyroscope-based stabilization
-- RAFT (Recurrent All-Pairs Field Transforms) for optical flow
-- SciPy for advanced trajectory smoothing algorithms
+- FFmpeg vidstab filters for the quick and custom stabilization paths.
+- OpenCV for feature detection, Lucas-Kanade optical flow, and robust affine estimation.
+- RAFT for dense optical flow.
+- SciPy for trajectory smoothing.
