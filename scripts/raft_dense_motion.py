@@ -19,7 +19,7 @@ import cv2
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(__file__))
-from smoothing_lib import apply_smoothing
+from smoothing_lib import apply_smoothing, limit_correction, smoothing_params
 
 
 MIN_TRACKS = 12
@@ -126,12 +126,14 @@ def estimate_flow(model, device, frame1, frame2, max_iterations, max_edge):
     return flow_np, resized1, resized2, scale_x, scale_y
 
 
-def decompose_affine(matrix, scale_x=1.0, scale_y=1.0):
+def decompose_affine(matrix, scale_x=1.0, scale_y=1.0, center=(0.0, 0.0)):
+    """Return [dx, dy, angle, scale_delta]; dx/dy are measured at ``center``."""
     if matrix is None:
         return np.zeros(4, dtype=np.float64)
 
-    dx = float(matrix[0, 2]) * scale_x
-    dy = float(matrix[1, 2]) * scale_y
+    cx, cy = center
+    dx = float(matrix[0, 0] * cx + matrix[0, 1] * cy + matrix[0, 2] - cx) * scale_x
+    dy = float(matrix[1, 0] * cx + matrix[1, 1] * cy + matrix[1, 2] - cy) * scale_y
     angle = float(math.atan2(matrix[1, 0], matrix[0, 0]))
     scale = float(math.sqrt(matrix[0, 0] ** 2 + matrix[1, 0] ** 2))
     return np.array([dx, dy, angle, scale - 1.0], dtype=np.float64)
@@ -269,7 +271,7 @@ def dense_flow_to_motion(flow, scale_x, scale_y):
     if matrix is None or inliers is None:
         return None, 0, len(pts1), None
 
-    motion = decompose_affine(matrix, scale_x, scale_y)
+    motion = decompose_affine(matrix, scale_x, scale_y, (width / 2.0, height / 2.0))
     return motion, int(np.count_nonzero(inliers)), len(pts1), matrix
 
 
@@ -319,7 +321,9 @@ def sparse_fallback_motion(prev_frame, curr_frame, scale_x, scale_y):
     if matrix is None or inliers is None:
         return None, 0, len(good_prev)
 
-    return decompose_affine(matrix, scale_x, scale_y), int(np.count_nonzero(inliers)), len(good_prev)
+    center = (prev_gray.shape[1] / 2.0, prev_gray.shape[0] / 2.0)
+    motion = decompose_affine(matrix, scale_x, scale_y, center)
+    return motion, int(np.count_nonzero(inliers)), len(good_prev)
 
 
 def clamp_transforms(transforms, width, height):
@@ -332,19 +336,6 @@ def clamp_transforms(transforms, width, height):
     return clamped
 
 
-def smoothing_params(method, strength, frame_count):
-    strength = max(1, int(round(strength)))
-    if method == "moving_average":
-        return {"window": min(strength, frame_count)}
-    if method == "savgol":
-        return {"window": min(strength, frame_count), "polyorder": 3}
-    if method == "gaussian":
-        return {"sigma": max(0.1, strength / 10.0)}
-    if method == "spline":
-        return {"smoothing_factor": float(strength)}
-    return {"window": min(strength, frame_count)}
-
-
 def output_size(choice, width, height):
     if choice == "1080p":
         return 1920, 1080
@@ -355,12 +346,24 @@ def output_size(choice, width, height):
     return width, height
 
 
-def build_affine_matrix(motion):
+def build_affine_matrix(motion, width, height):
+    """Build a warp that rotates/scales about the frame center, then translates."""
     dx, dy, angle, scale_delta = motion
     scale = float(np.clip(1.0 + scale_delta, 0.85, 1.15))
     cos_a = math.cos(angle) * scale
     sin_a = math.sin(angle) * scale
-    return np.array([[cos_a, -sin_a, dx], [sin_a, cos_a, dy]], dtype=np.float32)
+    cx, cy = width / 2.0, height / 2.0
+    tx = cx + dx - (cos_a * cx - sin_a * cy)
+    ty = cy + dy - (sin_a * cx + cos_a * cy)
+    return np.array([[cos_a, -sin_a, tx], [sin_a, cos_a, ty]], dtype=np.float32)
+
+
+def crop_margins(width, height, crop_percent):
+    """Max translation (px) that stays hidden by the crop, with headroom for rotation."""
+    crop = float(np.clip(crop_percent, 0.0, 45.0))
+    if crop <= 0:
+        return np.inf, np.inf
+    return width * crop / 200.0 * 0.85, height * crop / 200.0 * 0.85
 
 
 def build_base_maps(width, height):
@@ -565,8 +568,17 @@ def process_video(args):
         emit_error(f"Smoothing failed: {exc}")
         return None
 
-    correction = smooth_trajectory - trajectory
-    stabilized_transforms = clamp_transforms(transforms + correction, width, height)
+    # Warp each frame by (smooth path - raw path) only; adding the raw
+    # frame-to-frame motion back in would re-introduce the shake.
+    margin_x, margin_y = crop_margins(width, height, args.crop_percent)
+    relax_sigma = max(2.0, args.smoothing_strength / 20.0)
+    correction = limit_correction(
+        trajectory,
+        smooth_trajectory,
+        [margin_x, margin_y, np.inf, np.inf],
+        relax_sigma=relax_sigma,
+    )
+    stabilized_transforms = clamp_transforms(correction, width, height)
     mesh_stabilized = None
     if mesh_motions is not None and len(mesh_motions) == len(transforms):
         try:
@@ -578,9 +590,14 @@ def process_video(args):
                 args.smoothing_method,
                 **smoothing_params(args.smoothing_method, args.smoothing_strength, len(transforms)),
             )
-            smooth_mesh_trajectory = smooth_mesh_flat.reshape(mesh_trajectory.shape)
-            mesh_correction = smooth_mesh_trajectory - mesh_trajectory
-            mesh_stabilized = mesh_motions_array + mesh_correction
+            mesh_margins = np.tile([margin_x, margin_y], mesh_flat.shape[1] // 2)
+            mesh_correction_flat = limit_correction(
+                mesh_flat,
+                smooth_mesh_flat,
+                mesh_margins,
+                relax_sigma=relax_sigma,
+            )
+            mesh_stabilized = mesh_correction_flat.reshape(mesh_trajectory.shape)
         except Exception as exc:
             emit("trajectory", 92, message=f"Mesh smoothing unavailable, using global path: {exc}")
             mesh_stabilized = None
@@ -623,7 +640,7 @@ def process_video(args):
             stabilized = warp_with_mesh(frame, mesh_stabilized[motion_idx], base_x, base_y)
         else:
             motion = stabilized_transforms[motion_idx]
-            matrix = build_affine_matrix(motion)
+            matrix = build_affine_matrix(motion, width, height)
             stabilized = cv2.warpAffine(
                 frame,
                 matrix,
@@ -672,11 +689,11 @@ def main():
     parser.add_argument("--max-iterations", type=int, default=20, help="RAFT refinement iterations")
     parser.add_argument(
         "--smoothing-method",
-        default="savgol",
+        default="gaussian",
         choices=["moving_average", "savgol", "gaussian", "spline"],
         help="Trajectory smoothing method",
     )
-    parser.add_argument("--smoothing-strength", type=int, default=60, help="Smoothing strength")
+    parser.add_argument("--smoothing-strength", type=int, default=60, help="Smoothing window in frames")
     parser.add_argument("--crop-percent", type=int, default=10, help="Border crop percentage")
     parser.add_argument(
         "--resolution",

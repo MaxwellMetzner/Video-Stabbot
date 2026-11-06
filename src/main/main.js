@@ -223,16 +223,20 @@ function getVideoInfo(ffprobePath, filePath) {
 // Presets
 // ============================================================
 
+// vidstab defaults follow the upstream docs (accuracy max 15, stepsize 6,
+// mincontrast 0.25). smoothing counts frames on each side, so Quick mode
+// scales it with fps to keep a ~1 second window regardless of frame rate.
 const PRESETS = {
     quick: {
-        shakiness: 7,
-        accuracy: 9,
-        smoothing: 24,
+        shakiness: 8,
+        accuracy: 15,
+        smoothing: 30,
+        smoothingSeconds: 1.0,
         interpol: 'bicubic',
         optzoom: 1,
         zoom: 2,
-        stepsize: 8,
-        mincontrast: 0.3,
+        stepsize: 6,
+        mincontrast: 0.25,
         crop: 'black',
         encoding: {
             software: ['-preset', 'medium', '-crf', '20'],
@@ -276,9 +280,9 @@ function buildCustomPreset(settings, encoder) {
     const encQuality = settings.encoding || 'balanced';
     const encPreset = ENCODING_PRESETS[encQuality] || ENCODING_PRESETS.balanced;
     return {
-        shakiness: clamp(settings.shakiness ?? 7, 1, 10),
-        accuracy: clamp(settings.accuracy ?? 9, 1, 15),
-        smoothing: clamp(settings.smoothing ?? 24, 1, 300),
+        shakiness: clamp(settings.shakiness ?? 8, 1, 10),
+        accuracy: clamp(settings.accuracy ?? 15, 1, 15),
+        smoothing: clamp(settings.smoothing ?? 30, 1, 300),
         interpol: ['linear', 'bilinear', 'bicubic'].includes(settings.interpol) ? settings.interpol : 'bicubic',
         optzoom: clamp(settings.optzoom ?? 1, 0, 2),
         zoom: clamp(settings.zoom ?? 2, -50, 50),
@@ -288,8 +292,8 @@ function buildCustomPreset(settings, encoder) {
         relative: settings.relative ? 1 : 0,
         maxshift: clamp(settings.maxshift ?? 0, 0, 500),
         maxangle: settings.maxangle ?? 0,
-        stepsize: clamp(settings.stepsize ?? 8, 1, 32),
-        mincontrast: clamp(settings.mincontrast ?? 0.3, 0, 1),
+        stepsize: clamp(settings.stepsize ?? 6, 1, 32),
+        mincontrast: clamp(settings.mincontrast ?? 0.25, 0, 1),
         encoding: encPreset,
     };
 }
@@ -326,7 +330,7 @@ function getPythonScriptPath(scriptName) {
     return path.join(__dirname, '..', '..', 'scripts', scriptName);
 }
 
-function stabilize(ffmpegPath, input, output, mode, encoder, duration, event, customSettings) {
+function stabilize(ffmpegPath, input, output, mode, encoder, duration, event, customSettings, fps) {
     return new Promise((resolve, reject) => {
         cancelled = false;
         let preset;
@@ -336,6 +340,9 @@ function stabilize(ffmpegPath, input, output, mode, encoder, duration, event, cu
             preset = PRESETS[mode];
         }
         if (!preset) return reject(new Error(`Unknown mode: ${mode}`));
+        if (preset.smoothingSeconds && fps > 0) {
+            preset = { ...preset, smoothing: clamp(Math.round(fps * preset.smoothingSeconds), 10, 120) };
+        }
 
         const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'stabbot-'));
         // Use just the filename to avoid Windows drive-letter colon issues in FFmpeg filters;
@@ -344,7 +351,8 @@ function stabilize(ffmpegPath, input, output, mode, encoder, duration, event, cu
         const overallStart = Date.now();
 
         // ---- Phase 1: Motion Detection ----
-        let detectFilter = `vidstabdetect=shakiness=${preset.shakiness}:accuracy=${preset.accuracy}:stepsize=${preset.stepsize || 6}:mincontrast=${preset.mincontrast ?? 0.25}:result=${trfFile}`;
+        // format=yuv420p avoids chroma shift on 10-bit/4:2:2 sources (vid.stab README).
+        let detectFilter = `format=yuv420p,vidstabdetect=shakiness=${preset.shakiness}:accuracy=${preset.accuracy}:stepsize=${preset.stepsize || 6}:mincontrast=${preset.mincontrast ?? 0.25}:result=${trfFile}`;
         if (preset.tripod) detectFilter += ':tripod=1';
         const detectArgs = [
             '-y', '-i', input,
@@ -390,7 +398,7 @@ function stabilize(ffmpegPath, input, output, mode, encoder, duration, event, cu
             // ---- Phase 2: Stabilization Transform ----
             const encFlags = preset.encoding[encoder.type] || preset.encoding.software;
             let filter =
-                `vidstabtransform=smoothing=${preset.smoothing}` +
+                `format=yuv420p,vidstabtransform=smoothing=${preset.smoothing}` +
                 `:crop=${preset.crop}` +
                 `:zoom=${preset.zoom}` +
                 `:optzoom=${preset.optzoom}` +
@@ -558,8 +566,8 @@ ipcMain.handle('select-save-path', async (_e, defaultPath) => {
     return result.canceled ? null : result.filePath;
 });
 
-ipcMain.handle('start-processing', async (event, { ffmpeg, input, output, mode, encoder, duration, customSettings }) => {
-    return stabilize(ffmpeg, input, output, mode, encoder, duration, event, customSettings);
+ipcMain.handle('start-processing', async (event, { ffmpeg, input, output, mode, encoder, duration, customSettings, fps }) => {
+    return stabilize(ffmpeg, input, output, mode, encoder, duration, event, customSettings, fps);
 });
 
 ipcMain.handle('cancel-processing', async () => {

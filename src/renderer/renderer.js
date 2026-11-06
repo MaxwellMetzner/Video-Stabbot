@@ -228,6 +228,7 @@ async function handleQualityChoice(mode, customSettings) {
             mode: mode,
             encoder: system.encoder,
             duration: videoInfo.duration,
+            fps: videoInfo.fps,
         };
         if (mode === 'custom' && customSettings) {
             opts.customSettings = customSettings;

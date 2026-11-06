@@ -181,12 +181,12 @@
                         </div>
 
                         <!-- Smoothing -->
-                        <div class="setting-group" data-tooltip="Controls trajectory smoothing strength. Higher = smoother camera path but more crop. Lower = keeps more original motion. Range: 1-300">
+                        <div class="setting-group" data-tooltip="Frames averaged on each side of the current frame. ~1x the frame rate (30 at 30fps, 60 at 60fps) suits handheld footage. Higher = smoother camera path but more crop. Range: 1-300">
                             <div class="setting-header">
                                 <div class="setting-label">Smoothing</div>
-                                <input type="number" class="setting-value-input" id="val-smoothing" min="1" max="300" value="24" title="Smoothing strength (1-300)">
+                                <input type="number" class="setting-value-input" id="val-smoothing" min="1" max="300" value="30" title="Smoothing strength (1-300)">
                             </div>
-                            <input type="range" class="slider" id="opt-smoothing" min="1" max="300" value="24" title="Smoothing strength (1-300)">
+                            <input type="range" class="slider" id="opt-smoothing" min="1" max="300" value="30" title="Smoothing strength (1-300)">
                             <div class="slider-labels"><span>Minimal (1)</span><span>Maximum (300)</span></div>
                         </div>
 
@@ -194,9 +194,9 @@
                         <div class="setting-group" data-tooltip="How aggressively to detect camera shake. Higher values detect more shake. Range: 1-10">
                             <div class="setting-header">
                                 <div class="setting-label">Shakiness Detection</div>
-                                <input type="number" class="setting-value-input" id="val-shakiness" min="1" max="10" value="7" title="Shakiness detection (1-10)">
+                                <input type="number" class="setting-value-input" id="val-shakiness" min="1" max="10" value="8" title="Shakiness detection (1-10)">
                             </div>
-                            <input type="range" class="slider" id="opt-shakiness" min="1" max="10" value="7" title="Shakiness detection (1-10)">
+                            <input type="range" class="slider" id="opt-shakiness" min="1" max="10" value="8" title="Shakiness detection (1-10)">
                             <div class="slider-labels"><span>Subtle (1)</span><span>Aggressive (10)</span></div>
                         </div>
 
@@ -204,9 +204,9 @@
                         <div class="setting-group" data-tooltip="Analysis precision for motion detection. Higher is slower but more accurate. Range: 1-15">
                             <div class="setting-header">
                                 <div class="setting-label">Detection Accuracy</div>
-                                <input type="number" class="setting-value-input" id="val-accuracy" min="1" max="15" value="9" title="Detection accuracy (1-15)">
+                                <input type="number" class="setting-value-input" id="val-accuracy" min="1" max="15" value="15" title="Detection accuracy (1-15)">
                             </div>
-                            <input type="range" class="slider" id="opt-accuracy" min="1" max="15" value="9" title="Detection accuracy (1-15)">
+                            <input type="range" class="slider" id="opt-accuracy" min="1" max="15" value="15" title="Detection accuracy (1-15)">
                             <div class="slider-labels"><span>Fast (1)</span><span>Precise (15)</span></div>
                         </div>
 
@@ -326,9 +326,9 @@
                         <div class="setting-group" data-tooltip="Region size in pixels for motion detection. Smaller = more detail but slower. Larger = faster but less precise. Range: 1-32px">
                             <div class="setting-header">
                                 <div class="setting-label">Step Size</div>
-                                <input type="number" class="setting-value-input" id="val-stepsize" aria-label="Step Size value" min="1" max="32" value="8">
+                                <input type="number" class="setting-value-input" id="val-stepsize" aria-label="Step Size value" min="1" max="32" value="6">
                             </div>
-                            <input type="range" class="slider" id="opt-stepsize" aria-label="Step Size slider" min="1" max="32" value="8">
+                            <input type="range" class="slider" id="opt-stepsize" aria-label="Step Size slider" min="1" max="32" value="6">
                             <div class="slider-labels"><span>1 px</span><span>32 px</span></div>
                         </div>
 
@@ -336,9 +336,9 @@
                         <div class="setting-group" data-tooltip="Minimum contrast threshold for motion detection. Regions below this are ignored. Lower values detect more features. Range: 0.0-1.0">
                             <div class="setting-header">
                                 <div class="setting-label">Min Contrast</div>
-                                <input type="number" class="setting-value-input" id="val-mincontrast" aria-label="Min Contrast value" min="0" max="1" value="0.3" step="0.01">
+                                <input type="number" class="setting-value-input" id="val-mincontrast" aria-label="Min Contrast value" min="0" max="1" value="0.25" step="0.01">
                             </div>
-                            <input type="range" class="slider" id="opt-mincontrast" aria-label="Min Contrast slider" min="0" max="1" value="0.3" step="0.01">
+                            <input type="range" class="slider" id="opt-mincontrast" aria-label="Min Contrast slider" min="0" max="1" value="0.25" step="0.01">
                             <div class="slider-labels"><span>0.0</span><span>1.0</span></div>
                         </div>
 
@@ -446,24 +446,24 @@
                             </div>
                             <select class="select-input" id="opt-opencv-smoothing-method" title="Select smoothing method">
                                 <option value="moving_average">Moving Average</option>
-                                <option value="savgol" selected>Savitzky-Golay (Recommended)</option>
-                                <option value="gaussian">Gaussian Blur</option>
+                                <option value="savgol">Savitzky-Golay</option>
+                                <option value="gaussian" selected>Gaussian (Recommended)</option>
                                 <option value="spline">Cubic Spline</option>
                             </select>
                         </div>
 
                         <!-- Smoothing Strength -->
-                        <div class="setting-group" data-tooltip="Smoothing strength. Higher values = smoother camera path but may remove intentional motion. Range: 10-200">
+                        <div class="setting-group" data-tooltip="Smoothing window in frames. ~2x the frame rate (60 at 30fps) suits handheld footage; raise it for walking shots. Higher = smoother but may remove intentional motion. Range: 10-200">
                             <div class="setting-header">
                                 <div class="setting-label">Smoothing Strength</div>
-                                <input type="number" class="setting-value-input" id="val-opencv-smoothing" min="10" max="200" value="70" title="Smoothing strength (10-200)">
+                                <input type="number" class="setting-value-input" id="val-opencv-smoothing" min="10" max="200" value="60" title="Smoothing strength (10-200)">
                             </div>
-                            <input type="range" class="slider" id="opt-opencv-smoothing" min="10" max="200" value="70" title="Smoothing strength (10-200)">
+                            <input type="range" class="slider" id="opt-opencv-smoothing" min="10" max="200" value="60" title="Smoothing strength (10-200)">
                             <div class="slider-labels"><span>Subtle (10)</span><span>Maximum (200)</span></div>
                         </div>
 
                         <!-- Crop Percentage -->
-                        <div class="setting-group" data-tooltip="Crop borders to remove black edges from stabilization. Higher values crop more. Range: 0-20%">
+                        <div class="setting-group" data-tooltip="Crop budget for hiding stabilization borders. Corrections are kept inside this budget so edges stay hidden; more crop allows stronger stabilization. 0 = unlimited correction with mirrored edges. Range: 0-20%">
                             <div class="setting-header">
                                 <div class="setting-label">Crop Percentage</div>
                                 <input type="number" class="setting-value-input" id="val-opencv-crop" min="0" max="20" value="10" step="1" title="Crop percentage (0-20%)">
@@ -533,20 +533,20 @@
                         </div>
 
                         <!-- Smoothing Method -->
-                        <div class="setting-group" data-tooltip="Trajectory smoothing algorithm. Savitzky-Golay is recommended for most videos.">
+                        <div class="setting-group" data-tooltip="Trajectory smoothing algorithm. Gaussian is recommended for most videos; Savitzky-Golay keeps more of the original motion.">
                             <div class="setting-header">
                                 <div class="setting-label">Smoothing Method</div>
                             </div>
                             <select class="select-input" id="opt-raft-smoothing-method" title="Select smoothing method">
-                                <option value="savgol" selected>Savitzky-Golay Filter</option>
-                                <option value="gaussian">Gaussian Smoothing</option>
+                                <option value="gaussian" selected>Gaussian Smoothing (Recommended)</option>
+                                <option value="savgol">Savitzky-Golay Filter</option>
                                 <option value="moving_average">Moving Average</option>
                                 <option value="spline">Cubic Spline</option>
                             </select>
                         </div>
 
                         <!-- Smoothing Strength -->
-                        <div class="setting-group" data-tooltip="Trajectory smoothing strength. Higher = smoother but less responsive to real motion. Range: 10-100">
+                        <div class="setting-group" data-tooltip="Smoothing window in frames. ~2x the frame rate (60 at 30fps) suits handheld footage. Higher = smoother but less responsive to real motion. Range: 10-100">
                             <div class="setting-header">
                                 <div class="setting-label">Smoothing Strength</div>
                                 <input type="number" class="setting-value-input" id="val-raft-smoothing" min="10" max="100" value="60" step="5" title="Smoothing strength (10-100)">
@@ -556,7 +556,7 @@
                         </div>
 
                         <!-- Crop Percentage -->
-                        <div class="setting-group" data-tooltip="Percentage of borders to crop after stabilization. Removes black borders. Range: 0-30%">
+                        <div class="setting-group" data-tooltip="Crop budget for hiding stabilization borders. Corrections are kept inside this budget so edges stay hidden; more crop allows stronger stabilization. 0 = unlimited correction with mirrored edges. Range: 0-30%">
                             <div class="setting-header">
                                 <div class="setting-label">Border Crop</div>
                                 <input type="number" class="setting-value-input" id="val-raft-crop" min="0" max="30" value="10" step="1" title="Border crop (0-30%)">

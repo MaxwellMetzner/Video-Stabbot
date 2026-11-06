@@ -115,33 +115,98 @@ def smooth_gaussian(trajectory, sigma):
     return smoothed
 
 
-def smooth_spline(trajectory, smoothing_factor=None):
+def smooth_spline(trajectory, lam=None, smoothing_factor=None):
     """
-    Cubic spline interpolation - very smooth
-
-    Produces the smoothest results, good for removing all shake.
+    Penalized cubic smoothing spline - very smooth
 
     Args:
         trajectory: Nx3 array of [dx, dy, da] transforms
-        smoothing_factor: Spline smoothing parameter (None for auto)
-                         Higher values = smoother (try 1.0 to 100.0)
+        lam: Roughness penalty for make_smoothing_spline. The half-power
+             cutoff period in frames is roughly 2*pi*lam**0.25.
+        smoothing_factor: Legacy UnivariateSpline residual budget, used only
+                          when lam is not given.
 
     Returns:
         Smoothed trajectory array
     """
     n_points = trajectory.shape[0]
-    if n_points < 4:
+    if n_points < 5:
         return np.copy(trajectory).astype(np.float64)
 
-    x = np.arange(n_points)
+    x = np.arange(n_points, dtype=np.float64)
     smoothed = np.copy(trajectory).astype(np.float64)
 
-    # Apply spline to each column
+    if lam is not None:
+        try:
+            from scipy.interpolate import make_smoothing_spline
+        except ImportError:
+            # SciPy < 1.10: approximate the same cutoff with a Gaussian.
+            return smooth_gaussian(trajectory, max(0.1, lam ** 0.25))
+        for col in range(trajectory.shape[1]):
+            smoothed[:, col] = make_smoothing_spline(x, smoothed[:, col], lam=float(lam))(x)
+        return smoothed
+
     for col in range(trajectory.shape[1]):
         spline = UnivariateSpline(x, trajectory[:, col], s=smoothing_factor)
         smoothed[:, col] = spline(x)
 
     return smoothed
+
+
+def smoothing_params(method, strength, frame_count):
+    """
+    Map one UI "strength" value to equivalent parameters for every method.
+
+    strength is the smoothing window in frames (temporal support of the
+    low-pass filter), so switching methods keeps roughly the same cutoff.
+    """
+    window = max(3, int(round(strength)))
+    window = min(window, max(3, frame_count))
+    if method == "moving_average":
+        return {"window": window}
+    if method == "savgol":
+        # polyorder 2 behaves like a true low-pass; 3 lets too much shake through.
+        return {"window": window, "polyorder": 2}
+    if method == "gaussian":
+        # +/-3 sigma spans the window.
+        return {"sigma": max(0.5, window / 6.0)}
+    if method == "spline":
+        return {"lam": (window / (2.0 * np.pi)) ** 4}
+    return {"window": window}
+
+
+def limit_correction(trajectory, smooth_trajectory, margins, relax_sigma=3.0, iterations=6):
+    """
+    Keep corrections within a crop budget without introducing hard kinks.
+
+    Corrections larger than the margin would expose frame borders. Instead of
+    hard clipping (which makes the path jerk at the limit), the path is pulled
+    back toward the original trajectory and re-smoothed a few times.
+
+    Args:
+        trajectory: NxK raw cumulative trajectory
+        smooth_trajectory: NxK smoothed trajectory
+        margins: length-K array of max absolute correction per column
+                 (np.inf for unlimited)
+        relax_sigma: Gaussian sigma used to soften the pulled-back path
+
+    Returns:
+        NxK correction array (smooth - raw), within margins
+    """
+    trajectory = np.asarray(trajectory, dtype=np.float64)
+    margins = np.broadcast_to(np.asarray(margins, dtype=np.float64), (trajectory.shape[1],))
+    correction = np.asarray(smooth_trajectory, dtype=np.float64) - trajectory
+    if not np.isfinite(margins).any():
+        return correction
+
+    for _ in range(iterations):
+        clipped = np.clip(correction, -margins, margins)
+        if np.allclose(clipped, correction):
+            break
+        path = gaussian_filter1d(trajectory + clipped, sigma=relax_sigma, axis=0, mode="nearest")
+        correction = path - trajectory
+
+    return np.clip(correction, -margins, margins)
 
 
 # Method registry
@@ -178,8 +243,8 @@ def apply_smoothing(trajectory, method='moving_average', **params):
         # Gaussian with sigma of 10
         smooth = apply_smoothing(traj, 'gaussian', sigma=10)
 
-        # Spline with smoothing factor of 50
-        smooth = apply_smoothing(traj, 'spline', smoothing_factor=50)
+        # Smoothing spline with ~60-frame cutoff period
+        smooth = apply_smoothing(traj, 'spline', lam=(60 / (2 * np.pi)) ** 4)
     """
     if method not in SMOOTHING_METHODS:
         raise ValueError(f"Unknown smoothing method: {method}. "
@@ -225,7 +290,7 @@ if __name__ == '__main__':
         ('moving_average', {'window': 15}),
         ('savgol', {'window': 15, 'polyorder': 3}),
         ('gaussian', {'sigma': 5}),
-        ('spline', {'smoothing_factor': 50}),
+        ('spline', {'lam': (15 / (2 * np.pi)) ** 4}),
     ]
 
     for method, params in methods_to_test:

@@ -1,238 +1,57 @@
 # Video Stabbot
 
-Desktop video stabilization for quick fixes, manual FFmpeg tuning, OpenCV feature tracking, and RAFT dense optical flow.
+Video Stabbot is a desktop app for stabilizing shaky video. Choose a quick automatic mode or adjust settings for more control.
 
-## Description
+## Stabilization modes
 
-Video Stabbot is an Electron app for stabilizing shaky footage from a single interface. It combines FFmpeg vidstab, OpenCV sparse optical-flow tracking, and RAFT dense optical flow so users can choose between speed, control, and maximum motion-analysis quality.
+| Mode | Best for | Requirements |
+| --- | --- | --- |
+| **Quick FFmpeg** | Fast, general-purpose stabilization | FFmpeg with libvidstab |
+| **Custom** | Tuning FFmpeg stabilization settings | FFmpeg with libvidstab |
+| **OpenCV Features** | More involved handheld motion | Python, OpenCV, NumPy, SciPy |
+| **RAFT Deep Learning** | Difficult motion when processing time is less important | Python, PyTorch, torchvision, OpenCV, NumPy, SciPy |
 
-## Screenshots
+Quick FFmpeg uses accuracy 15 and step size 6, with smoothing scaled to about one second of video. OpenCV and RAFT use Gaussian motion smoothing by default and limit corrections to the selected crop.
 
-![File selection](./screenshot-file-selection.jpg)
-![Mode selection](./screenshot-mode-selection.jpg)
-![Custom settings](./screenshot-custom-settings.jpg)
-![Processing](./screenshot-processing.jpg)
+## Requirements
 
-## Features
+- Node.js 18 or later
+- FFmpeg with **libvidstab** support, available on your `PATH`
+- Python 3.8 or later for OpenCV and RAFT modes
 
-### FFmpeg Modes
+Install FFmpeg from [ffmpeg.org](https://ffmpeg.org/download.html). To check for libvidstab, run `ffmpeg -filters` and look for `vidstabdetect` and `vidstabtransform`.
 
-- **Quick FFmpeg Mode** - Fast two-pass stabilization using FFmpeg vidstab with bicubic transforms, recommended sharpening, optional audio mapping, and practical defaults.
-
-- **Custom Mode** - Full manual control over vidstab parameters:
-  - Border mode, smoothing strength, shakiness detection
-  - Accuracy, auto/manual zoom, zoom speed, interpolation method
-  - Tripod mode, relative transforms, max shift, max rotation
-  - Step size, minimum contrast, encoding quality
-
-### Advanced Stabilization Modes
-
-- **OpenCV Feature Tracking** (requires Python, OpenCV, NumPy, and SciPy) - Sparse optical-flow stabilization with robust trajectory smoothing.
-  - Auto Track mode uses Shi-Tomasi corners and pyramidal Lucas-Kanade tracking.
-  - Features are distributed across a grid so motion estimates do not overfit one textured area.
-  - SIFT, ORB, and AKAZE can seed tracking points when preferred.
-  - Forward/backward track validation rejects unstable points.
-  - ECC refinement improves the tracked transform when image alignment converges.
-  - Farneback dense optical flow is used as a fallback when sparse tracks are weak.
-  - RANSAC estimates camera motion while rejecting moving-object outliers.
-  - Output keeps the selected resolution and muxes source audio.
-
-- **RAFT Deep Learning** (requires PyTorch and torchvision) - Dense mesh-flow stabilization for hard footage.
-  - Uses torchvision RAFT large weights for Sintel-style or Things-style motion.
-  - Uses a 7 x 9 local mesh by default instead of only one global camera path.
-  - Smooths local mesh trajectories to reduce parallax and rolling local jitter.
-  - Automatically caps analysis resolution for practical memory use.
-  - Converts dense flow to robust global camera motion with RANSAC.
-  - Falls back to sparse tracking when dense flow is unreliable.
-  - Output keeps the selected resolution and muxes source audio.
-
-### General Features
-
-- **Faster startup checks** - Python packages are probed in one lightweight pass instead of importing each dependency.
-- **GPU acceleration** - Auto-detects NVIDIA NVENC, Intel QSV, AMD AMF, or Apple VideoToolbox; falls back to CPU libx264.
-- **Smart dependency detection** - Advanced modes appear disabled with tooltip explanations when prerequisites are missing.
-- **Drag-and-drop or file picker** - Easy video input.
-- **Real-time progress tracking** - Phase labels, progress bar, and elapsed time.
-- **Tooltips** - Hover over any setting for detailed explanations.
-- **Bidirectional slider/input controls** - Type values manually or use sliders.
-
-## Prerequisites
-
-### Core Requirements
-
-- **Node.js** v18 or later - https://nodejs.org
-- **FFmpeg** with **libvidstab** support - must be on your system PATH
-  - Download from https://ffmpeg.org/download.html
-  - Verify: `ffmpeg -filters | findstr vidstab` on Windows or `ffmpeg -filters | grep vidstab` on macOS/Linux
-
-### Optional: Advanced Modes
-
-#### OpenCV Feature Tracking Mode
-
-- **Python 3.8+** on your system PATH
-- **Required packages**:
-
-  ```bash
-  pip install opencv-python numpy scipy
-  ```
-
-#### RAFT Deep Learning Mode
-
-- **Python 3.8+** on your system PATH
-- **PyTorch and torchvision**:
-
-  ```bash
-  # GPU version for NVIDIA CUDA
-  pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
-
-  # CPU-only version
-  pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-  ```
-
-- **Additional packages**:
-
-  ```bash
-  pip install opencv-python numpy scipy
-  ```
-
-First RAFT run may download model weights. GPU is strongly recommended.
-
-## Setup
+The advanced modes need Python packages. Install them with:
 
 ```bash
-git clone <repo-url>
-cd Video-Stabbot
-npm install
 pip install -r requirements.txt
 ```
 
-## Running
+This includes PyTorch and torchvision for RAFT; their installation can require several gigabytes. For NVIDIA GPU support, install the matching CUDA version of PyTorch by following the [PyTorch installation guide](https://pytorch.org/get-started/locally/).
+
+## Run the app
 
 ```bash
+npm install
 npm start
 ```
 
-From the app:
-
-1. **Select a video** - Drag onto the drop zone or click to browse.
-2. **Choose a stabilization mode** - Quick FFmpeg, Custom, OpenCV Features, or RAFT Deep Learning.
-3. **Configure settings** - Each advanced mode has its own settings view with tooltips.
-4. **Pick a save location** - Choose where to save the stabilized video.
-5. **Wait for processing** - Progress shows the current phase and elapsed time.
-6. **View result** - Open the output folder or process another video.
-
-## Project Structure
-
-```text
-Video-Stabbot/
-|-- package.json
-|-- requirements.txt
-|-- README.md
-|-- screenshot-file-selection.jpg
-|-- screenshot-mode-selection.jpg
-|-- screenshot-custom-settings.jpg
-|-- screenshot-processing.jpg
-|-- src/
-|   |-- main/
-|   |   |-- main.js
-|   |   |-- detect-worker.js
-|   |   `-- preload.js
-|   `-- renderer/
-|       |-- index.html
-|       |-- renderer.js
-|       `-- styles.css
-`-- scripts/
-    |-- smoothing_lib.py
-    |-- opencv_feature_tracking.py
-    `-- raft_dense_motion.py
-```
-
-## Mode Comparison
-
-| Mode | Speed | Quality | Requirements | Best For |
-| --- | --- | --- | --- | --- |
-| **Quick FFmpeg** | Fast | Good | FFmpeg only | General use and quick results |
-| **Custom** | Fast to medium | Good to excellent | FFmpeg only | Fine-tuning vidstab parameters |
-| **OpenCV Features** | Medium | Excellent | Python, OpenCV, NumPy, SciPy | Complex handheld motion and CPU-friendly quality |
-| **RAFT Deep Learning** | Very slow | Highest | Python, PyTorch, torchvision, SciPy | Difficult footage where processing time is acceptable |
+Choose a video, select a stabilization mode, adjust settings if needed, then choose where to save the result. The app displays processing progress and elapsed time.
 
 ## Troubleshooting
 
-### Advanced modes are disabled
+- **A mode is disabled:** Install its required Python packages. Hover over the mode for details.
+- **FFmpeg filters are missing:** Install an FFmpeg build with libvidstab support and make sure FFmpeg is on your `PATH`.
+- **RAFT is slow:** A supported GPU can speed up processing. For CPU-only systems, try OpenCV Features.
 
-- **OpenCV**: Install `pip install opencv-python numpy scipy`.
-- **RAFT**: Install `pip install torch torchvision opencv-python numpy scipy`.
-- Hover over the disabled mode tile for the specific missing dependency.
-
-### RAFT mode is very slow
-
-- Install PyTorch with CUDA support for GPU acceleration.
-- Reduce refinement iterations only when speed matters more than quality.
-- Use OpenCV mode on CPU-only systems when speed matters.
-
-### FFmpeg vidstab filters not found
-
-- Download an FFmpeg build with libvidstab support.
-- Verify with `ffmpeg -filters | grep vidstab`.
-- Windows users can try builds from https://www.gyan.dev/ffmpeg/builds/.
-
-## Building a Distributable
-
-To package the app as a standalone Windows executable:
+## Build for Windows
 
 ```bash
 npm run dist:win
 ```
 
-Output files are created in `dist/`:
-
-- `video-stabbot Setup <version>.exe`
-- `video-stabbot <version>.exe` if the portable target is generated
-
-Optional build commands:
-
-```bash
-npm run pack
-npm run dist
-```
-
-Python dependencies must still be installed separately by end users for advanced modes.
-
-## GitHub and Releases Workflow
-
-Commit source and project metadata only:
-
-- `src/`
-- `scripts/`
-- `package.json`
-- `package-lock.json`
-- `requirements.txt`
-- `README.md`
-- screenshot jpgs or other intentional assets
-- `.gitignore`
-
-Do not commit generated build artifacts such as `dist/`, installers, portable executables, or unpacked app folders.
-
-After running `npm run dist:win`, upload release artifacts from `dist/`:
-
-- `video-stabbot Setup <version>.exe`
-- `video-stabbot <version>.exe` if generated
-
-Recommended release steps on Windows:
-
-1. Update version in `package.json`.
-2. Commit and push changes.
-3. Build release artifacts with `npm run dist:win`.
-4. Create and push a tag such as `v2.0.1`.
-5. Draft a GitHub release for that tag and upload the `.exe` assets.
+Install Python dependencies separately on computers using the advanced modes. Build outputs are created in `dist/`.
 
 ## License
 
-MIT License - see LICENSE file for details.
-
-## Acknowledgments
-
-- FFmpeg vidstab filters for the quick and custom stabilization paths.
-- OpenCV for feature detection, Lucas-Kanade optical flow, and robust affine estimation.
-- RAFT for dense optical flow.
-- SciPy for trajectory smoothing.
+MIT. See [LICENSE](./LICENSE).
